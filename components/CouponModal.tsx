@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Copy, Check, Calendar, Star, Ticket } from "lucide-react";
+import { X, Copy, Check, Calendar, Star } from "lucide-react";
 import { Offer } from "../lib/db";
 
 interface CouponModalProps {

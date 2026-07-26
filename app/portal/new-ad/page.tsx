@@ -21,7 +21,6 @@ const PRESET_IMAGES = [
 export default function CreateNewAdPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Form Fields
   const [businessName, setBusinessName] = useState("");
@@ -29,6 +28,8 @@ export default function CreateNewAdPage() {
   const [subTitle, setSubTitle] = useState("");
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState("");
+  const [originalPrice, setOriginalPrice] = useState("999");
+  const [ouiyaPrice, setOuiyaPrice] = useState("499");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Food & Dining");
   const [location, setLocation] = useState("Puducherry");
@@ -40,16 +41,19 @@ export default function CreateNewAdPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategories(getCategories());
     if (typeof window !== "undefined") {
       const logged = localStorage.getItem("ouiya_logged_in_host") === "true";
-      setIsLoggedIn(logged);
+      if (!logged) {
+        router.push("/portal");
+      }
     }
-  }, []);
+  }, [router]);
 
   const handleNextStep = () => {
     if (formStep === 1) {
-      if (!businessName || !title || !discount || !description) {
+      if (!businessName || !title || !discount || !description || !originalPrice || !ouiyaPrice) {
         setError("Please fill out all mandatory fields in Step 1.");
         return;
       }
@@ -72,7 +76,7 @@ export default function CreateNewAdPage() {
       businessName,
       title,
       subTitle: subTitle || "Special Promo",
-      discount,
+      discount: discount || "50% OFF",
       code: code.toUpperCase() || "NOCODE",
       description,
       category,
@@ -80,7 +84,11 @@ export default function CreateNewAdPage() {
       businessLogo: customImageUrl || selectedImage,
       plan: selectedPlan === "basic" ? "Basic Plan" : "Premium Plan",
       pricePaid: selectedPlan === "basic" ? 499 : 1499,
-      status: "Pending Payment"
+      status: "Pending Payment",
+      originalPrice: Number(originalPrice) || 999,
+      ouiyaPrice: Number(ouiyaPrice) || 499,
+      rating: 4.5,
+      reviewsCount: "150 reviews"
     };
 
     // Save to temp storage for checkout retrieval
@@ -146,7 +154,7 @@ export default function CreateNewAdPage() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-black text-zinc-900 dark:text-white">Create Advertisement Draft</h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Provide attractive details about your offer to catch shoppers' attention.</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Provide attractive details about your offer to catch shoppers&apos; attention.</p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -182,14 +190,59 @@ export default function CreateNewAdPage() {
                   {/* Offer Title */}
                   <div>
                     <label className="block text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
-                      Discount Title *
+                      Offer Name / Deal Title *
                     </label>
                     <input
                       type="text"
                       required
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. 50% OFF, Buy 1 Get 1"
+                      placeholder="e.g. Double Cheese Pizza, Deluxe Spa Package"
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-800 dark:text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* Discount Tag */}
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
+                      Discount Tag *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      placeholder="e.g. 50% OFF, 30% OFF, BOGO"
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-800 dark:text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* Original Price */}
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
+                      Original Price (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={originalPrice}
+                      onChange={(e) => setOriginalPrice(e.target.value)}
+                      placeholder="e.g. 999"
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-800 dark:text-white focus:outline-none focus:border-primary"
+                    />
+                  </div>
+
+                  {/* OUIYA Deal Price */}
+                  <div>
+                    <label className="block text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 mb-2">
+                      OUIYA Offer Price (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={ouiyaPrice}
+                      onChange={(e) => setOuiyaPrice(e.target.value)}
+                      placeholder="e.g. 499"
                       className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs text-zinc-800 dark:text-white focus:outline-none focus:border-primary"
                     />
                   </div>

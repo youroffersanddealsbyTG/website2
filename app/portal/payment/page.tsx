@@ -27,6 +27,7 @@ export default function CheckoutPaymentPage() {
     if (typeof window !== "undefined") {
       const draft = localStorage.getItem("ouiya_temp_ad");
       if (draft) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setDraftAd(JSON.parse(draft));
       } else {
         // No draft, redirect back to portal

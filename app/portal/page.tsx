@@ -38,21 +38,22 @@ export default function AdvertiserPortalPage() {
   });
   const [ads, setAds] = useState<Offer[]>([]);
 
+  const loadDashboardData = () => {
+    setStats(getAdvertiserStats());
+    setAds(getLocalAds());
+  };
+
   useEffect(() => {
     // Check if user is logged in via local storage
     if (typeof window !== "undefined") {
       const loggedIn = localStorage.getItem("ouiya_logged_in_host") === "true";
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoggedIn(loggedIn);
       if (loggedIn) {
         loadDashboardData();
       }
     }
   }, []);
-
-  const loadDashboardData = () => {
-    setStats(getAdvertiserStats());
-    setAds(getLocalAds());
-  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
