@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { useApp } from "../lib/AppContext";
-import { getBusinesses, getOffers, Business, Offer } from "../lib/db";
+import { getBusinessesFromFirebase, getOffers, Business, Offer } from "../lib/db";
 import { 
   X, ArrowLeft, Home, User, Heart, ShoppingCart, Ticket, 
   Tv, Users, Settings, Sun, ChevronRight, HelpCircle, 
@@ -41,6 +41,7 @@ export default function SideDrawer() {
   const [customerName, setCustomerName] = useState("Karthik");
   const [customerAvatar, setCustomerAvatar] = useState("https://img.freepik.com/premium-vector/vector-3d-character-avatar-design_1170063-2287.jpg?w=200");
   const [offersList, setOffersList] = useState<Offer[]>([]);
+  const [businessesList, setBusinessesList] = useState<Business[]>([]);
   const [purchases, setPurchases] = useState<{
     id: string;
     businessName: string;
@@ -63,6 +64,7 @@ export default function SideDrawer() {
       setAvatarError(false);
 
       getOffers().then(setOffersList).catch(() => {});
+      getBusinessesFromFirebase().then(setBusinessesList).catch(() => {});
 
       const loadPurchases = () => {
         const stored = localStorage.getItem("ouiya_purchased_coupons");
@@ -511,7 +513,7 @@ export default function SideDrawer() {
 
         {/* VIEW 3: Favourites Sub-View */}
         {currentView === "favourites" && (() => {
-          const allBusinesses = getBusinesses();
+          const allBusinesses = businessesList;
           const likedShopIds = Object.keys(likedShops).filter(id => likedShops[id]);
           const likedOfferIds = Object.keys(likedOffers).filter(id => likedOffers[id]);
           const likedShopItems = allBusinesses.filter(b => likedShopIds.includes(b.id));

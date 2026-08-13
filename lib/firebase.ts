@@ -1,8 +1,8 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp } from "@firebase/app";
 import { getAnalytics, isSupported } from "@firebase/analytics";
 import { getFirestore } from "@firebase/firestore";
 import { getAuth } from "@firebase/auth";
+
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,9 +21,9 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 // Initialize analytics safely for client-side
-let analytics = null;
+let analytics: any = null;
 if (typeof window !== "undefined") {
-  isSupported().then((supported) => {
+  isSupported().then((supported: boolean) => {
     if (supported) {
       analytics = getAnalytics(app);
     }

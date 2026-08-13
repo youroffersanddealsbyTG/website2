@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "../lib/AppContext";
-import { getOffers, getCategories, getBusinesses, Offer, Category, Business } from "../lib/db";
+import { getOffers, getCategories, getBusinesses, getBusinessesFromFirebase, Offer, Category, Business } from "../lib/db";
 import BottomNav from "../components/BottomNav";
 import ShopDetailModal from "../components/ShopDetailModal";
 import OfferDetailModal from "../components/OfferDetailModal";
@@ -91,9 +91,8 @@ export default function AppHome() {
 
   // Fetch initial data
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategories(getCategories());
-    setBusinesses(getBusinesses());
+    getBusinessesFromFirebase().then(setBusinesses);
     getOffers().then(setOffers);
   }, []);
 

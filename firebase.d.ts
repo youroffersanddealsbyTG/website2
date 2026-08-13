@@ -1,15 +1,12 @@
-declare module '@firebase/app' {
-  export * from 'firebase/app';
-}
+declare module '@firebase/app';
+declare module '@firebase/auth';
+declare module '@firebase/firestore';
+declare module '@firebase/analytics';
 
-declare module '@firebase/firestore' {
-  export * from 'firebase/firestore';
-}
+declare module 'firebase/app';
+declare module 'firebase/auth';
+declare module 'firebase/firestore';
+declare module 'firebase/analytics';
 
-declare module '@firebase/auth' {
-  export * from 'firebase/auth';
-}
 
-declare module '@firebase/analytics' {
-  export * from 'firebase/analytics';
-}
+

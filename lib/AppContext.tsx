@@ -189,9 +189,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const openShopDetails = (shopId: string, clickedOffer?: Offer) => {
-    const businesses = getBusinesses();
-    const foundShop = businesses.find(b => b.id === shopId);
+  const openShopDetails = async (shopId: string, clickedOffer?: Offer) => {
+    const { getBusinessesFromFirebase } = await import("./db");
+    const businesses = await getBusinessesFromFirebase();
+    let foundShop = businesses.find(b => b.id === shopId || (clickedOffer && b.name.toLowerCase() === clickedOffer.businessName.toLowerCase()));
+    
+    if (!foundShop && clickedOffer) {
+      foundShop = {
+        id: shopId,
+        name: clickedOffer.businessName,
+        logoUrl: clickedOffer.businessLogo,
+        rating: clickedOffer.rating,
+        reviewsCount: clickedOffer.reviewsCount,
+        offersCount: 1,
+        address: clickedOffer.location,
+        phone: "+91 98765 43210",
+        gallery: [clickedOffer.businessLogo],
+        about: clickedOffer.aboutOffer || clickedOffer.description || "Partner Business on Ouiya",
+        comments: []
+      };
+    }
+
     if (foundShop) {
       setSelectedShop(foundShop);
       if (clickedOffer) {

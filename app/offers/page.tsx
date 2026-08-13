@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "../../lib/AppContext";
-import { getOffers, getBusinesses, getCategories, Offer, Business } from "../../lib/db";
+import { getOffers, getBusinesses, getBusinessesFromFirebase, getCategories, Offer, Business } from "../../lib/db";
 import { 
   ArrowLeft, Search, Star, Heart, MapPin, 
   Sparkles, Flame, Percent, ChevronRight 
@@ -31,11 +31,10 @@ export default function CategoryBrowseView() {
       });
       setOffers(activeOffers);
 
-      const allBiz = getBusinesses();
+      const allBiz = await getBusinessesFromFirebase();
       if (selectedCategory && selectedCategory !== "All") {
-        // Filter businesses that have offers in this category
         const filteredBiz = allBiz.filter((b) => 
-          activeOffers.some((o) => o.shopId === b.id)
+          activeOffers.some((o) => o.shopId === b.id || o.businessName.toLowerCase() === b.name.toLowerCase())
         );
         setBusinesses(filteredBiz.length > 0 ? filteredBiz : allBiz);
       } else {
@@ -147,7 +146,7 @@ export default function CategoryBrowseView() {
             Brands
           </h3>
           <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
-            {getBusinesses().map((biz) => (
+            {businesses.map((biz) => (
               <button
                 key={biz.id}
                 onClick={() => openShopDetails(biz.id)}
@@ -168,8 +167,7 @@ export default function CategoryBrowseView() {
           <div className="space-y-5">
             {businesses.map((biz) => {
               // Get the primary offer for this shop
-              const shopOffer = offers.find(o => o.shopId === biz.id) || 
-                                 INITIAL_MOCK_OFFERS.find(o => o.shopId === biz.id);
+              const shopOffer = offers.find(o => o.shopId === biz.id || o.businessName.toLowerCase() === biz.name.toLowerCase());
 
               if (!shopOffer) return null;
 
@@ -277,27 +275,3 @@ export default function CategoryBrowseView() {
     </div>
   );
 }
-
-// Global page list constants for next.js
-const INITIAL_MOCK_OFFERS = [
-  {
-    id: "off-1",
-    title: "Double Cheese Pizza",
-    subTitle: "Pizza Hut Special Offer",
-    description: "Indulge in our signature Double Cheese pizza with loaded mozzarella and fresh toppings.",
-    businessName: "Pizza Hut",
-    businessLogo: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?w=150&auto=format&fit=crop&q=60",
-    discount: "34% OFF",
-    rating: 4.5,
-    reviewsCount: "1.2K",
-    code: "PIZZAHUT34",
-    category: "Food",
-    location: "Puducherry",
-    isTopOffer: true,
-    isCoupon: true,
-    expiryDate: "2026-09-30",
-    originalPrice: 1235,
-    ouiyaPrice: 1000,
-    shopId: "biz-pizzahut"
-  }
-];

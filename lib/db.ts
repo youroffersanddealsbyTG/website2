@@ -650,15 +650,131 @@ export const resetLocalAds = (): void => {
   }
 };
 
-// Main Data Fetching Interface - Queries Firestore or returns Mock data + Local Storage Ads
+// Interfaces matching Ouiya Firestore Database Schema
+export interface FirestoreReview {
+  id: string;
+  userId: string;
+  userName: string;
+  userImageUrl?: string;
+  shopId: string;
+  offerId?: string;
+  rating: number;
+  comment: string;
+  createdAt?: any;
+}
+
+export interface FirestoreCoupon {
+  id: string;
+  offerId: string;
+  userId: string;
+  shopId: string;
+  code: string;
+  status: "unused" | "redeemed";
+  offerTitle: string;
+  createdAt?: any;
+  redeemedAt?: any;
+}
+
+export function mapFirestoreOffer(docId: string, data: any): Offer {
+  let discountStr = data.discount || "";
+  if (!discountStr) {
+    if (data.discountPercent) discountStr = `${data.discountPercent}% OFF`;
+    else if (data.discountAmount) discountStr = `₹${data.discountAmount} OFF`;
+    else discountStr = "Special Offer";
+  }
+
+  let ouiyaPriceVal = typeof data.discountedPrice === 'number' ? data.discountedPrice : parseFloat(data.discountedPrice) || data.ouiyaPrice || 499;
+  let origPriceVal = typeof data.originalPrice === 'number' ? data.originalPrice : parseFloat(data.originalPrice) || data.originalPrice || 999;
+
+  let logoUrl = data.businessLogo || (Array.isArray(data.imageUrls) && data.imageUrls[0]) || "";
+  if (!logoUrl) {
+    logoUrl = "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80";
+  }
+
+  let expiryStr = data.expiryDate || "";
+  if (!expiryStr && data.expiresAt) {
+    if (typeof data.expiresAt === 'object' && typeof data.expiresAt.toDate === 'function') {
+      expiryStr = data.expiresAt.toDate().toLocaleDateString("en-GB");
+    } else if (typeof data.expiresAt === 'string') {
+      expiryStr = data.expiresAt;
+    }
+  }
+
+  return {
+    id: docId,
+    title: data.title || "Special Deal",
+    subTitle: data.subTitle || data.shopName || data.businessName || "Exclusive Offer",
+    description: data.description || "",
+    businessName: data.shopName || data.businessName || "Local Business",
+    businessLogo: logoUrl,
+    discount: discountStr,
+    rating: typeof data.rating === 'number' ? data.rating : 4.5,
+    reviewsCount: data.reviewCount ? `${data.reviewCount} reviews` : (data.reviewsCount || "120 reviews"),
+    code: data.promoCode || data.code || `PROMO${Math.floor(Math.random() * 9000 + 1000)}`,
+    category: data.category ? (data.category.charAt(0).toUpperCase() + data.category.slice(1)) : "Food",
+    location: data.shopAddress || data.location || "Puducherry",
+    isTopOffer: Boolean(data.isFeatured || data.isTopOffer),
+    isCoupon: true,
+    isNewArrival: true,
+    expiryDate: expiryStr || "2026-12-31",
+    originalPrice: origPriceVal,
+    ouiyaPrice: ouiyaPriceVal,
+    shopId: data.shopId || `biz-${docId}`,
+    aboutOffer: data.description || "",
+    termsAndConditions: Array.isArray(data.termsAndConditions) ? data.termsAndConditions : ["Terms apply."]
+  };
+}
+
+export function mapFirestoreBusiness(docId: string, data: any): Business {
+  return {
+    id: docId || data.uid,
+    name: data.displayName || data.name || "Local Shop",
+    logoUrl: data.logoUrl || "https://images.unsplash.com/photo-1590947132387-155cc02f3212?w=150&auto=format&fit=crop&q=60",
+    rating: typeof data.rating === 'number' ? data.rating : 4.5,
+    reviewsCount: data.reviewsCount || "100+",
+    offersCount: data.offersCount || 1,
+    address: data.address || data.locationText || "Puducherry",
+    phone: data.phone || "+91 98765 43210",
+    gallery: Array.isArray(data.gallery) && data.gallery.length > 0 ? data.gallery : [
+      "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80"
+    ],
+    about: data.businessDescription || data.about || "Quality local business offering top deals.",
+    hasVoucher: Boolean(data.hasVoucher),
+    comments: Array.isArray(data.comments) ? data.comments : []
+  };
+}
+
+// Main Data Fetching Interface - Queries Firestore & merges seamlessly with existing UI data
 export const getOffers = async (filters?: {
   category?: string;
   query?: string;
   location?: string;
 }): Promise<Offer[]> => {
-  let allOffers = [...INITIAL_MOCK_OFFERS];
+  let firestoreOffers: Offer[] = [];
+
+  // Query Cloud Firestore `offers` collection according to schema
+  try {
+    const querySnapshot = await getDocs(collection(db, "offers"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      firestoreOffers.push(mapFirestoreOffer(doc.id, data));
+    });
+  } catch {
+    // Silent catch if Firebase rules deny unauthenticated read access
+  }
+
   const localAds = getLocalAds();
-  allOffers = [...localAds, ...allOffers]; // Local ads take precedence (show up first)
+
+  let allOffers: Offer[] = [];
+  if (firestoreOffers.length > 0) {
+    // When Firebase data is present, display ONLY Firebase offers (and user local ads)
+    allOffers = [...firestoreOffers, ...localAds];
+  } else if (localAds.length > 0) {
+    allOffers = [...localAds];
+  } else {
+    // Fallback to mock offers only when no Firebase data exists
+    allOffers = [...INITIAL_MOCK_OFFERS];
+  }
 
   // Map and apply fallbacks for missing/empty fields
   allOffers = allOffers.map(o => {
@@ -677,8 +793,8 @@ export const getOffers = async (filters?: {
     return {
       ...o,
       businessLogo: o.businessLogo || defaultLogo,
-      rating: o.rating || parseFloat((4.0 + Math.random() * 0.9).toFixed(1)),
-      reviewsCount: o.reviewsCount || `${Math.floor(Math.random() * 200) + 15} reviews`,
+      rating: o.rating || 4.5,
+      reviewsCount: o.reviewsCount || "150 reviews",
       ouiyaPrice: o.ouiyaPrice || 499,
       originalPrice: o.originalPrice || 999,
       discount: o.discount || "50% OFF",
@@ -707,35 +823,123 @@ export const getOffers = async (filters?: {
       allOffers = allOffers.filter(
         (o) =>
           o.title.toLowerCase().includes(searchLower) ||
-          o.subTitle.toLowerCase().includes(searchLower) ||
+          (o.subTitle && o.subTitle.toLowerCase().includes(searchLower)) ||
           o.businessName.toLowerCase().includes(searchLower) ||
-          o.description.toLowerCase().includes(searchLower)
+          (o.description && o.description.toLowerCase().includes(searchLower))
       );
     }
-  }
-
-  // Double check Firestore integration - to satisfy requirement but keep it backend-safe:
-  try {
-    const querySnapshot = await getDocs(collection(db, "offers"));
-    const firestoreOffers: Offer[] = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      firestoreOffers.push({
-        id: doc.id,
-        ...data
-      } as Offer);
-    });
-    if (firestoreOffers.length > 0) {
-      return [...firestoreOffers, ...allOffers];
-    }
-  } catch {
-    // Graceful fallback
   }
 
   return allOffers;
 };
 
-// Safe Firestore & Local Sync function to add Advertisement
+// Query Firestore `users` collection for Businesses (with fallback to public `offers` collection)
+export const getBusinessesFromFirebase = async (): Promise<Business[]> => {
+  let firestoreBusinesses: Business[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "users"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.role === "business" || data.businessCategory || data.ownerName) {
+        firestoreBusinesses.push(mapFirestoreBusiness(doc.id, data));
+      }
+    });
+  } catch {
+    // If users collection requires auth permission, extract shop details from public offers collection
+    try {
+      const offersSnap = await getDocs(collection(db, "offers"));
+      const shopsMap: Record<string, Business> = {};
+      offersSnap.forEach((doc) => {
+        const data = doc.data();
+        const shopId = data.shopId || `biz-${(data.shopName || data.businessName || doc.id).toLowerCase().replace(/\s+/g, "")}`;
+        if (!shopsMap[shopId]) {
+          shopsMap[shopId] = {
+            id: shopId,
+            name: data.shopName || data.businessName || "Local Partner",
+            logoUrl: (Array.isArray(data.imageUrls) && data.imageUrls[0]) || data.businessLogo || "https://images.unsplash.com/photo-1590947132387-155cc02f3212?w=150&auto=format&fit=crop&q=80",
+            rating: typeof data.rating === 'number' ? data.rating : 4.5,
+            reviewsCount: data.reviewCount ? `${data.reviewCount} reviews` : "100+",
+            offersCount: 1,
+            address: data.shopAddress || data.location || "Puducherry",
+            phone: "+91 98765 43210",
+            gallery: Array.isArray(data.imageUrls) && data.imageUrls.length > 0 ? data.imageUrls : [
+              "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80"
+            ],
+            about: data.description || "Verified partner business on Ouiya.",
+            hasVoucher: false,
+            comments: []
+          };
+        }
+      });
+      firestoreBusinesses = Object.values(shopsMap);
+    } catch {
+      // Graceful fallback
+    }
+  }
+
+  // When Firebase data exists, return ONLY Firebase businesses
+  if (firestoreBusinesses.length > 0) {
+    return firestoreBusinesses;
+  }
+
+  return MOCK_BUSINESSES;
+};
+
+// Query Firestore `reviews` collection for a shop
+export const getReviewsForShop = async (shopId: string): Promise<FirestoreReview[]> => {
+  let reviews: FirestoreReview[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "reviews"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.shopId === shopId) {
+        reviews.push({
+          id: doc.id,
+          userId: data.userId || "",
+          userName: data.userName || "Customer",
+          userImageUrl: data.userImageUrl,
+          shopId: data.shopId,
+          offerId: data.offerId,
+          rating: data.rating || 5,
+          comment: data.comment || "",
+          createdAt: data.createdAt
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Firestore reviews fetch notice:", e);
+  }
+  return reviews;
+};
+
+// Query Firestore `coupons` collection for a user
+export const getCouponsForUser = async (userId: string): Promise<FirestoreCoupon[]> => {
+  let coupons: FirestoreCoupon[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "coupons"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.userId === userId) {
+        coupons.push({
+          id: doc.id,
+          offerId: data.offerId || "",
+          userId: data.userId || "",
+          shopId: data.shopId || "",
+          code: data.code || "",
+          status: data.status || "unused",
+          offerTitle: data.offerTitle || "",
+          createdAt: data.createdAt,
+          redeemedAt: data.redeemedAt
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Firestore coupons fetch notice:", e);
+  }
+  return coupons;
+};
+
+// Safe Firestore & Local Sync function to create local Advertisement
 export const createAdvertisement = async (ad: Omit<Offer, "id">): Promise<Offer> => {
   const savedAd = saveLocalAd(ad);
   try {
@@ -771,3 +975,4 @@ export const getAdvertiserStats = () => {
     totalClicks
   };
 };
+

@@ -52,8 +52,23 @@ export default function ShopDetailModal() {
       }
     });
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalComments(selectedShop.comments || []);
+    // Fetch reviews from Firestore
+    import("../lib/db").then(({ getReviewsForShop }) => {
+      getReviewsForShop(selectedShop.id).then((fsReviews) => {
+        if (fsReviews.length > 0) {
+          const formatted = fsReviews.map(r => ({
+            username: r.userName,
+            rating: r.rating,
+            text: r.comment,
+            date: r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-GB") : "Recently"
+          }));
+          setLocalComments([...formatted, ...(selectedShop.comments || [])]);
+        } else {
+          setLocalComments(selectedShop.comments || []);
+        }
+      });
+    });
+
     setCurrentImageIndex(0);
     setActiveTab("offers");
   }, [selectedShop, selectedOffer]);
