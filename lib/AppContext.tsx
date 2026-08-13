@@ -2,6 +2,15 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Offer, Business, getBusinesses } from "./db";
+import { 
+  onAuthStateChanged, 
+  signInWithPopup, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  User 
+} from "@firebase/auth";
+import { auth, googleProvider } from "./firebase";
 
 export interface CartItem {
   offer: Offer;
@@ -20,6 +29,17 @@ interface AppContextProps {
   themeMode: "light" | "dark" | "system";
   theme: "light" | "dark";
   
+  // Auth state & actions
+  user: User | null;
+  authLoading: boolean;
+  isAuthModalOpen: boolean;
+  openAuthModal: () => void;
+  closeAuthModal: () => void;
+  loginWithGoogle: () => Promise<void>;
+  loginWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string) => Promise<void>;
+  logout: () => Promise<void>;
+
   // Setters & Actions
   setTab: (tab: "home" | "categories" | "cart") => void;
   setSelectedCategory: (category: string) => void;
@@ -56,6 +76,60 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [couponExpiry, setCouponExpiry] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   
+  // Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [pendingActionOffer, setPendingActionOffer] = useState<Offer | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const openAuthModal = () => setIsAuthModalOpen(true);
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+    setPendingActionOffer(null);
+  };
+
+  const loginWithGoogle = async () => {
+    await signInWithPopup(auth, googleProvider);
+    setIsAuthModalOpen(false);
+    if (pendingActionOffer) {
+      const offerToCart = pendingActionOffer;
+      setPendingActionOffer(null);
+      addToCartDirect(offerToCart);
+    }
+  };
+
+  const loginWithEmail = async (email: string, pass: string) => {
+    await signInWithEmailAndPassword(auth, email, pass);
+    setIsAuthModalOpen(false);
+    if (pendingActionOffer) {
+      const offerToCart = pendingActionOffer;
+      setPendingActionOffer(null);
+      addToCartDirect(offerToCart);
+    }
+  };
+
+  const signUpWithEmail = async (email: string, pass: string) => {
+    await createUserWithEmailAndPassword(auth, email, pass);
+    setIsAuthModalOpen(false);
+    if (pendingActionOffer) {
+      const offerToCart = pendingActionOffer;
+      setPendingActionOffer(null);
+      addToCartDirect(offerToCart);
+    }
+  };
+
+  const logout = async () => {
+    await signOut(auth);
+  };
+
   // Theme management: support light, dark, and system preference
   const [themeMode, setThemeModeState] = useState<"light" | "dark" | "system">("dark");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -93,7 +167,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleTheme = () => {
-    // Cycle order: dark -> light -> system -> dark
     let nextMode: "light" | "dark" | "system" = "light";
     if (themeMode === "dark") nextMode = "light";
     else if (themeMode === "light") nextMode = "system";
@@ -107,7 +180,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       const savedMode = localStorage.getItem("ouiya_theme_mode") as "light" | "dark" | "system" | null;
       const initialMode = savedMode || "dark";
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThemeModeState(initialMode);
       applyTheme(initialMode);
     }
@@ -127,12 +199,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       const savedShops = localStorage.getItem("ouiya_liked_shops");
       if (savedShops) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         try { setLikedShops(JSON.parse(savedShops)); } catch {}
       }
       const savedOffers = localStorage.getItem("ouiya_liked_offers");
       if (savedOffers) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         try { setLikedOffers(JSON.parse(savedOffers)); } catch {}
       }
     }
@@ -164,7 +234,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedCart = localStorage.getItem("ouiya_cart");
       if (savedCart) {
         try {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setCart(JSON.parse(savedCart));
         } catch (e) {
           console.error("Failed to parse cart local storage", e);
@@ -182,7 +251,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setTab = (tab: "home" | "categories" | "cart") => {
     setActiveTab(tab);
-    // Reset modal states when navigating away
     if (tab === "home") {
       setSelectedShop(null);
       setSelectedOffer(null);
@@ -230,7 +298,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSelectedOffer(null);
   };
 
-  const addToCart = (offer: Offer) => {
+  const addToCartDirect = (offer: Offer) => {
     const existingIndex = cart.findIndex((item) => item.offer.id === offer.id);
     if (existingIndex > -1) {
       const updated = [...cart];
@@ -239,8 +307,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } else {
       saveCartToStorage([...cart, { offer, quantity: 1 }]);
     }
-    // Automatically transition to the cart page
     setTab("cart");
+  };
+
+  const addToCart = (offer: Offer) => {
+    if (!user) {
+      setPendingActionOffer(offer);
+      setIsAuthModalOpen(true);
+      return;
+    }
+    addToCartDirect(offer);
   };
 
   const removeFromCart = (offerId: string) => {
@@ -264,7 +340,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const processPayment = () => {
-    // Save purchased items to coupon history
     if (typeof window !== "undefined") {
       const existingPurchasesStr = localStorage.getItem("ouiya_purchased_coupons") || "[]";
       let existingPurchases = [];
@@ -291,11 +366,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("ouiya_purchased_coupons", JSON.stringify([...newPurchases, ...existingPurchases]));
     }
 
-    // Generate a random coupon code
     const randomCode = "OUIYA-" + Math.random().toString(36).substring(2, 8).toUpperCase();
     setCouponCode(randomCode);
     
-    // Set valid till a week from now
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + 7);
     
@@ -328,6 +401,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         searchQuery,
         themeMode,
         theme,
+        user,
+        authLoading,
+        isAuthModalOpen,
+        openAuthModal,
+        closeAuthModal,
+        loginWithGoogle,
+        loginWithEmail,
+        signUpWithEmail,
+        logout,
         setTab,
         setSelectedCategory,
         setSearchQuery,

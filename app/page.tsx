@@ -11,6 +11,7 @@ import CouponSuccessModal from "../components/CouponSuccessModal";
 import Navbar from "../components/Navbar";
 import SideDrawer from "../components/SideDrawer";
 import Footer from "../components/Footer";
+import AuthModal from "../components/AuthModal";
 
 // Views
 import CategoryBrowseView from "./offers/page"; // We can reuse the Category page layout inline!
@@ -654,6 +655,7 @@ export default function AppHome() {
       <OfferDetailModal />
       <CouponSuccessModal />
       <SideDrawer />
+      <AuthModal />
 
       {/* Sticky Bottom Navigation */}
       <BottomNav />
