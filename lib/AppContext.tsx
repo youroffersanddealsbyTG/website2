@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Offer, Business, getBusinesses } from "./db";
+import { TouristDestination, DestinationActivity } from "./discoverData";
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -19,10 +20,11 @@ export interface CartItem {
 
 interface AppContextProps {
   cart: CartItem[];
-  activeTab: "home" | "categories" | "cart";
+  activeTab: "home" | "categories" | "cart" | "discover";
   selectedCategory: string;
   selectedShop: Business | null;
   selectedOffer: Offer | null;
+  selectedDestination: TouristDestination | null;
   couponCode: string | null;
   couponExpiry: string | null;
   searchQuery: string;
@@ -40,8 +42,13 @@ interface AppContextProps {
   signUpWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
 
+  // Discover Pondicherry actions
+  openDestinationDetails: (dest: TouristDestination) => void;
+  closeDestinationDetails: () => void;
+  bookActivityRedirect: (activity: DestinationActivity) => void;
+
   // Setters & Actions
-  setTab: (tab: "home" | "categories" | "cart") => void;
+  setTab: (tab: "home" | "categories" | "cart" | "discover") => void;
   setSelectedCategory: (category: string) => void;
   setSearchQuery: (query: string) => void;
   openShopDetails: (shopId: string, clickedOffer?: Offer) => void;
@@ -68,13 +75,29 @@ const AppContext = createContext<AppContextProps | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeTab, setActiveTab] = useState<"home" | "categories" | "cart">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "categories" | "cart" | "discover">("home");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedShop, setSelectedShop] = useState<Business | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<TouristDestination | null>(null);
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [couponExpiry, setCouponExpiry] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  
+  // Discover Pondicherry actions
+  const openDestinationDetails = (dest: TouristDestination) => {
+    setSelectedDestination(dest);
+  };
+
+  const closeDestinationDetails = () => {
+    setSelectedDestination(null);
+  };
+
+  const bookActivityRedirect = (activity: DestinationActivity) => {
+    setSelectedDestination(null);
+    setSelectedCategory(activity.categoryFilter);
+    setActiveTab("categories");
+  };
   
   // Auth state
   const [user, setUser] = useState<User | null>(null);
@@ -94,6 +117,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const closeAuthModal = () => {
     setIsAuthModalOpen(false);
     setPendingActionOffer(null);
+  };
+
+  const addToCartDirect = (offer: Offer) => {
+    const existingIndex = cart.findIndex((item) => item.offer.id === offer.id);
+    if (existingIndex > -1) {
+      const updated = [...cart];
+      updated[existingIndex].quantity += 1;
+      saveCartToStorage(updated);
+    } else {
+      saveCartToStorage([...cart, { offer, quantity: 1 }]);
+    }
+    setTab("cart");
   };
 
   const loginWithGoogle = async () => {
@@ -249,9 +284,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const setTab = (tab: "home" | "categories" | "cart") => {
+  const setTab = (tab: "home" | "categories" | "cart" | "discover") => {
     setActiveTab(tab);
-    if (tab === "home") {
+    if (tab === "home" || tab === "discover") {
       setSelectedShop(null);
       setSelectedOffer(null);
     }
@@ -296,18 +331,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const closeOfferDetails = () => {
     setSelectedOffer(null);
-  };
-
-  const addToCartDirect = (offer: Offer) => {
-    const existingIndex = cart.findIndex((item) => item.offer.id === offer.id);
-    if (existingIndex > -1) {
-      const updated = [...cart];
-      updated[existingIndex].quantity += 1;
-      saveCartToStorage(updated);
-    } else {
-      saveCartToStorage([...cart, { offer, quantity: 1 }]);
-    }
-    setTab("cart");
   };
 
   const addToCart = (offer: Offer) => {
@@ -396,6 +419,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         selectedCategory,
         selectedShop,
         selectedOffer,
+        selectedDestination,
         couponCode,
         couponExpiry,
         searchQuery,
@@ -410,6 +434,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loginWithEmail,
         signUpWithEmail,
         logout,
+        openDestinationDetails,
+        closeDestinationDetails,
+        bookActivityRedirect,
         setTab,
         setSelectedCategory,
         setSearchQuery,

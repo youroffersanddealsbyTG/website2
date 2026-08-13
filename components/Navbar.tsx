@@ -73,6 +73,16 @@ export default function Navbar() {
               >
                 Offers
               </button>
+              <button
+                onClick={() => { setTab("discover"); router.push("/"); }}
+                className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                  activeTab === "discover"
+                    ? "bg-primary/10 text-primary font-black"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                }`}
+              >
+                Discover Pondicherry
+              </button>
             </div>
           </div>
 

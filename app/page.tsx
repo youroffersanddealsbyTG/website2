@@ -12,9 +12,11 @@ import Navbar from "../components/Navbar";
 import SideDrawer from "../components/SideDrawer";
 import Footer from "../components/Footer";
 import AuthModal from "../components/AuthModal";
+import DestinationDetailModal from "../components/DestinationDetailModal";
 
 // Views
 import CategoryBrowseView from "./offers/page"; // We can reuse the Category page layout inline!
+import DiscoverPondicherryView from "./discover/page";
 
 import { 
   Search, Star, Heart, 
@@ -190,6 +192,13 @@ export default function AppHome() {
 
             {/* Quick shortcuts pills */}
             <div className="flex flex-wrap gap-2 pt-2">
+              <button 
+                onClick={() => { setTab("discover"); }} 
+                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-rose-500 rounded-full transition-all cursor-pointer shadow-md shadow-amber-500/20 scale-105"
+              >
+                <Compass className="w-3.5 h-3.5 text-white" />
+                <span>Discover Pondicherry 📍</span>
+              </button>
               <button 
                 onClick={() => { setTab("categories"); }} 
                 className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:border-primary bg-white dark:bg-zinc-900/50 hover:bg-primary/5 dark:hover:bg-zinc-900 rounded-full transition-all cursor-pointer"
@@ -641,6 +650,7 @@ export default function AppHome() {
             <CategoryBrowseView />
           </div>
         )}
+        {activeTab === "discover" && <DiscoverPondicherryView />}
         {activeTab === "cart" && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-28">
             <CartModal />
@@ -656,6 +666,7 @@ export default function AppHome() {
       <CouponSuccessModal />
       <SideDrawer />
       <AuthModal />
+      <DestinationDetailModal />
 
       {/* Sticky Bottom Navigation */}
       <BottomNav />

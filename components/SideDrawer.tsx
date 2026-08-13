@@ -412,6 +412,17 @@ export default function SideDrawer() {
               </button>
 
               <button 
+                onClick={() => { setTab("discover"); toggleDrawer(); router.push("/"); }}
+                className="flex justify-between items-center w-full py-4 px-3 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 rounded-xl text-zinc-800 dark:text-zinc-200 transition-colors font-black text-sm cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Compass className="w-4.5 h-4.5 text-primary" />
+                  <span>Discover Pondicherry</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-400" />
+              </button>
+
+              <button 
                 onClick={() => { setTab("categories"); toggleDrawer(); router.push("/"); }}
                 className="flex justify-between items-center w-full py-4 px-3 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 rounded-xl text-zinc-800 dark:text-zinc-200 transition-colors font-black text-sm cursor-pointer"
               >
