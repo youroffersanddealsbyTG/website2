@@ -85,7 +85,8 @@ export default function Navbar() {
               >
                 Offers
               </button>
-              <Link
+              {/* Ad Portal Link (Disabled / Idea Scrapped) */}
+              {/* <Link
                 href="/portal"
                 className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
                   pathname.startsWith("/portal")
@@ -94,96 +95,41 @@ export default function Navbar() {
                 }`}
               >
                 Ad Portal
-              </Link>
+              </Link> */}
             </div>
           </div>
 
-          {/* Right Side Options (Role Switcher and Auth buttons) */}
+          {/* Right Side Options (Cart Icon & Navigation Drawer) */}
           <div className="hidden md:flex md:items-center md:gap-3">
 
-            {/* Cart Icon (only in customer mode) */}
-            {userRole === "customer" && (
-              <button
-                onClick={() => { setTab("cart"); router.push("/"); }}
-                className="relative p-2.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:scale-105 transition-all duration-200 cursor-pointer focus:outline-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full"
-                title="View Cart"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {cart.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[9px] font-black rounded-full h-4.5 w-4.5 flex items-center justify-center border-2 border-white dark:border-zinc-950 animate-pulse">
-                    {cart.length}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Quick Demo Switcher */}
+            {/* Cart Icon */}
             <button
-              onClick={toggleRole}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-300 cursor-pointer transition-all duration-200"
-              title="Click to toggle user role for testing"
+              onClick={() => { setTab("cart"); router.push("/"); }}
+              className="relative p-2.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:scale-105 transition-all duration-200 cursor-pointer focus:outline-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full"
+              title="View Cart"
             >
-              <div className={`w-2 h-2 rounded-full ${userRole === "advertiser" ? "bg-emerald-500 animate-pulse" : "bg-primary animate-pulse"}`} />
-              <span>Testing: {userRole === "advertiser" ? "Host Portal" : "Customer View"}</span>
+              <ShoppingCart className="w-5 h-5" />
+              {cart.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-white text-[9px] font-black rounded-full h-4.5 w-4.5 flex items-center justify-center border-2 border-white dark:border-zinc-950 animate-pulse">
+                  {cart.length}
+                </span>
+              )}
             </button>
 
-            {userRole === "advertiser" ? (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/portal"
-                  className="flex items-center gap-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white transition-all duration-300 shadow-md"
-                >
-                  <Building2 className="w-4 h-4" />
-                  <span>Host Dashboard</span>
-                </Link>
-                
-                <button
-                  onClick={toggleDrawer}
-                  className="relative w-10 h-10 flex flex-col justify-center items-center gap-[4.5px] rounded-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all duration-200 focus:outline-none cursor-pointer"
-                  title="Open Navigation Menu"
-                >
-                  <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "rotate-45 translate-y-[6.5px]" : ""}`} />
-                  <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "opacity-0" : ""}`} />
-                  <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "-rotate-45 -translate-y-[6.5px]" : ""}`} />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/portal"
-                  className="text-zinc-600 dark:text-zinc-300 hover:text-primary transition-colors text-sm font-semibold px-4 py-2"
-                >
-                  Host Login
-                </Link>
-                <Link
-                  href="/portal"
-                  className="flex items-center gap-1.5 bg-primary text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-primary-hover transition-all duration-300 shadow-md shadow-primary/25 hover:shadow-lg hover:-translate-y-0.5"
-                >
-                  <span>Post an Ad</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-
-                <button
-                  onClick={toggleDrawer}
-                  className="relative w-10 h-10 flex flex-col justify-center items-center gap-[4.5px] rounded-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all duration-200 focus:outline-none cursor-pointer"
-                  title="Open Navigation Menu"
-                >
-                  <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "rotate-45 translate-y-[6.5px]" : ""}`} />
-                  <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "opacity-0" : ""}`} />
-                  <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "-rotate-45 -translate-y-[6.5px]" : ""}`} />
-                </button>
-              </div>
-            )}
+            {/* Menu Drawer Toggle Button */}
+            <button
+              onClick={toggleDrawer}
+              className="relative w-10 h-10 flex flex-col justify-center items-center gap-[4.5px] rounded-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all duration-200 focus:outline-none cursor-pointer"
+              title="Open Navigation Menu"
+            >
+              <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "rotate-45 translate-y-[6.5px]" : ""}`} />
+              <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "opacity-0" : ""}`} />
+              <span className={`w-5 h-[2px] bg-current rounded-full transition-all duration-300 origin-center ${isDrawerOpen ? "-rotate-45 -translate-y-[6.5px]" : ""}`} />
+            </button>
           </div>
- 
+
           {/* Mobile menu button */}
           <div className="flex items-center md:hidden gap-2">
-            <button
-              onClick={toggleRole}
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-full border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
-            >
-              <span>Test: {userRole === "advertiser" ? "Host" : "Cust"}</span>
-            </button>
             <button
               onClick={toggleDrawer}
               className="w-10 h-10 flex flex-col justify-center items-center gap-[4.5px] rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-800 transition-all duration-200 focus:outline-none cursor-pointer"

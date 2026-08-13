@@ -462,8 +462,8 @@ export default function SideDrawer() {
                 </div>
               </div>
 
-              {/* Switch to Business Advertiser portal */}
-              <button 
+              {/* Switch to Business Advertiser portal (Idea Scrapped) */}
+              {/* <button 
                 onClick={() => { toggleDrawer(); router.push("/portal"); }}
                 className="flex justify-between items-center w-full py-4 px-3 hover:bg-zinc-50 dark:hover:bg-zinc-850/50 rounded-xl text-zinc-800 dark:text-zinc-200 transition-colors font-black text-sm cursor-pointer"
               >
@@ -472,7 +472,7 @@ export default function SideDrawer() {
                   <span>Switch to Business</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-zinc-400" />
-              </button>
+              </button> */}
 
               <hr className="border-zinc-100 dark:border-zinc-800 my-4" />
 

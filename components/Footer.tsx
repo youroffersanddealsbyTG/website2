@@ -95,34 +95,24 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Links Column 3: For Businesses */}
-          <div>
+          {/* Links Column 3: For Businesses (Idea Scrapped) */}
+          {/* <div>
             <h3 className="text-sm font-bold text-zinc-900 dark:text-white tracking-wider uppercase mb-5">
               For Businesses
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/portal" className="text-sm text-zinc-500 hover:text-primary dark:text-zinc-400 dark:hover:text-primary transition-colors duration-150">
+                <Link href="/#partner" className="text-sm text-zinc-500 hover:text-primary dark:text-zinc-400 dark:hover:text-primary transition-colors duration-150">
                   List Your Business
                 </Link>
               </li>
               <li>
-                <Link href="/portal" className="text-sm text-zinc-500 hover:text-primary dark:text-zinc-400 dark:hover:text-primary transition-colors duration-150">
-                  Business Login
-                </Link>
-              </li>
-              <li>
-                <Link href="/portal" className="text-sm text-zinc-500 hover:text-primary dark:text-zinc-400 dark:hover:text-primary transition-colors duration-150">
-                  Advertising
-                </Link>
-              </li>
-              <li>
-                <Link href="/portal" className="text-sm text-zinc-500 hover:text-primary dark:text-zinc-400 dark:hover:text-primary transition-colors duration-150">
+                <Link href="/#partner" className="text-sm text-zinc-500 hover:text-primary dark:text-zinc-400 dark:hover:text-primary transition-colors duration-150">
                   Partner with Us
                 </Link>
               </li>
             </ul>
-          </div>
+          </div> */}
 
         </div>
 
