@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Tag, ShoppingCart, User as UserIcon, LogOut, LogIn } from "lucide-react";
+import { Tag, ShoppingCart, User as UserIcon, LogOut, LogIn, MapPin, ChevronDown, Bell, X } from "lucide-react";
 import { useApp } from "../lib/AppContext";
 
 export default function Navbar() {
@@ -15,10 +15,16 @@ export default function Navbar() {
     isDrawerOpen,
     user,
     logout,
-    openAuthModal
+    openAuthModal,
+    location,
+    setLocation
   } = useApp();
 
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [selectedLoc, setSelectedLoc] = useState("White Town, Pondicherry");
+  const [comingSoonCity, setComingSoonCity] = useState<string | null>(null);
+
   const pathname = usePathname();
   const router = useRouter();
 
@@ -51,11 +57,61 @@ export default function Navbar() {
               </span>
             </Link>
 
+            {/* Location Selector (Wireframe Image 1: White Town, Pondicherry / Coming Soon) */}
+            <div className="relative ml-4 sm:ml-6 hidden sm:block">
+              <button
+                onClick={() => setShowLocationDropdown(!showLocationDropdown)}
+                className="flex items-center gap-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-red-100 dark:hover:bg-red-900/60 cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <div className="text-left leading-tight">
+                  <span className="block font-black text-[11px]">{selectedLoc}</span>
+                  <span className="block text-[9px] opacity-75 font-medium">Near Mahatma Gandhi Statue</span>
+                </div>
+                <ChevronDown className="w-3 h-3 ml-0.5" />
+              </button>
+
+              {/* Location Dropdown */}
+              {showLocationDropdown && (
+                <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 p-2 text-xs">
+                  <div className="p-2 border-b border-zinc-100 dark:border-zinc-800 font-black text-zinc-500 uppercase text-[10px]">
+                    Select City / Region
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedLoc("White Town, Pondicherry");
+                      setShowLocationDropdown(false);
+                      setComingSoonCity(null);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-bold text-zinc-900 dark:text-white hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400"
+                  >
+                    <span>White Town, Pondicherry</span>
+                    <span className="text-[9px] bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300 font-extrabold px-2 py-0.5 rounded-full">ACTIVE</span>
+                  </button>
+
+                  {["Chennai, Tamil Nadu", "Bengaluru, Karnataka", "Hyderabad, Telangana", "Mumbai, Maharashtra"].map((city) => (
+                    <button
+                      key={city}
+                      onClick={() => {
+                        setComingSoonCity(city);
+                        setShowLocationDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    >
+                      <span>{city}</span>
+                      <span className="text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 font-bold px-2 py-0.5 rounded-full">Coming Soon</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Desktop Navigation Links */}
-            <div className="hidden md:ml-10 md:flex md:space-x-1">
+            <div className="hidden lg:ml-6 lg:flex lg:space-x-1">
               <button
                 onClick={() => { setTab("home"); router.push("/"); }}
-                className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeTab === "home" && pathname === "/"
                     ? "bg-primary/10 text-primary font-black"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
@@ -65,7 +121,7 @@ export default function Navbar() {
               </button>
               <button
                 onClick={() => { setTab("categories"); router.push("/"); }}
-                className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeTab === "categories" && pathname === "/"
                     ? "bg-primary/10 text-primary font-black"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
@@ -75,7 +131,7 @@ export default function Navbar() {
               </button>
               <button
                 onClick={() => { setTab("discover"); router.push("/"); }}
-                className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeTab === "discover"
                     ? "bg-primary/10 text-primary font-black"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
@@ -154,6 +210,41 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Coming Soon Modal Popup for other states (Annotated wireframe Image 1 rule) */}
+      {comingSoonCity && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative animate-scale-up text-center space-y-4">
+            <button
+              onClick={() => setComingSoonCity(null)}
+              className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-14 h-14 bg-amber-500/10 text-amber-500 rounded-2xl flex items-center justify-center mx-auto border border-amber-500/20">
+              <Bell className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950 px-3 py-1 rounded-full border border-amber-500/20">
+                Coming Soon 🚀
+              </span>
+              <h3 className="text-lg font-black text-zinc-900 dark:text-white pt-2">{comingSoonCity}</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                Ouiya is currently operational in <strong className="text-red-600 dark:text-red-400">Pondicherry</strong>. We are launching in {comingSoonCity} soon!
+              </p>
+            </div>
+
+            <button
+              onClick={() => setComingSoonCity(null)}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl text-xs shadow-lg transition-transform active:scale-95 cursor-pointer"
+            >
+              Explore Pondicherry Deals
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

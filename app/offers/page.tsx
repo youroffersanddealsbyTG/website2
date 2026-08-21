@@ -1,12 +1,40 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "../../lib/AppContext";
 import { getOffers, getBusinesses, getBusinessesFromFirebase, getCategories, Offer, Business } from "../../lib/db";
 import { 
   ArrowLeft, Search, Star, Heart, MapPin, 
-  Sparkles, Flame, Percent, ChevronRight 
+  Sparkles, Flame, Percent, ChevronRight, Filter, Tag, ArrowUpRight
 } from "lucide-react";
+
+// Sub-categories mapping for Wireframe Image 2 compliance
+const SUB_CATEGORIES: Record<string, string[]> = {
+  "Electronics": ["All", "Mobiles", "Audio", "TV & Video", "Accessories"],
+  "Mobiles": ["All", "Smartphones", "Feature Phones", "Accessories", "Tablets"],
+  "Audio": ["All", "Headphones", "Earbuds", "Speakers", "Soundbars"],
+  "TV & Video": ["All", "Smart TVs", "4K TVs", "Projectors", "Set Top Box"],
+  "Laptops": ["All", "Gaming", "Business", "Ultrabook", "2-in-1"],
+  "Accessories": ["All", "Chargers", "Cables", "Power Banks", "Bags"],
+  "Food & Dining": ["All", "Cafes", "Fine Dining", "Bakeries", "Fast Food"],
+  "Fashion": ["All", "Men", "Women", "Footwear", "Watches"],
+  "Beauty": ["All", "Skincare", "Haircare", "Makeup", "Spa"],
+  "Home & Living": ["All", "Furniture", "Decor", "Lighting", "Kitchen"],
+  "Travel": ["All", "Hotels", "Resorts", "Tours", "Rentals"],
+  "Sports": ["All", "Fitness", "Gyms", "Equipment", "Apparel"]
+};
+
+// Category Banners mapping for Wireframe Image 2 compliance
+const CATEGORY_BANNERS: Record<string, { title: string; subtitle: string; discount: string; bg: string }> = {
+  "Electronics": { title: "Big Electronics Fest!", subtitle: "Latest gadgets. Best offers.", discount: "Up to 60% OFF", bg: "from-blue-700 via-indigo-800 to-purple-900" },
+  "Mobiles": { title: "Smartphones Mega Deal", subtitle: "Top smartphones at unbeatable prices", discount: "Up to 50% OFF", bg: "from-slate-900 via-zinc-800 to-blue-900" },
+  "Audio": { title: "Sound Like Never Before", subtitle: "Premium headphones & wireless earbuds", discount: "Up to 50% OFF", bg: "from-red-800 via-rose-900 to-zinc-950" },
+  "TV & Video": { title: "Big Screen Big Experience", subtitle: "4K Smart TVs & Home Theater setups", discount: "Up to 55% OFF", bg: "from-cyan-900 via-blue-950 to-zinc-950" },
+  "Laptops": { title: "Powerful Performance", subtitle: "Gaming, business & ultrabook laptops", discount: "Up to 40% OFF", bg: "from-purple-900 via-indigo-950 to-zinc-950" },
+  "Accessories": { title: "Essential Tech Accessories", subtitle: "Fast chargers, durable cables & power banks", discount: "Up to 50% OFF", bg: "from-blue-900 via-cyan-950 to-zinc-950" },
+  "Food & Dining": { title: "Pondicherry Foodie Special", subtitle: "Delightful French & South Indian delicacies", discount: "Flat 30% OFF", bg: "from-orange-700 via-red-800 to-amber-900" },
+  "Fashion": { title: "Trendy Style Clearance", subtitle: "Apparel, footwear & luxury accessories", discount: "Up to 60% OFF", bg: "from-pink-700 via-rose-800 to-purple-900" }
+};
 
 export default function CategoryBrowseView() {
   const { 
@@ -16,12 +44,19 @@ export default function CategoryBrowseView() {
     searchQuery, 
     setSearchQuery,
     openShopDetails,
+    likedOffers,
+    toggleOfferLike,
     likedShops,
     toggleShopLike
   } = useApp();
 
   const [offers, setOffers] = useState<Offer[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [activeSubCategory, setActiveSubCategory] = useState<string>("All");
+
+  useEffect(() => {
+    setActiveSubCategory("All");
+  }, [selectedCategory]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,221 +85,212 @@ export default function CategoryBrowseView() {
     setTab("home");
   };
 
+  const subCategoriesList = useMemo(() => {
+    return SUB_CATEGORIES[selectedCategory] || ["All", "Top Rated", "New Arrivals", "Best Discount"];
+  }, [selectedCategory]);
 
+  const categoryBanner = useMemo(() => {
+    return CATEGORY_BANNERS[selectedCategory] || {
+      title: `${selectedCategory === "All" ? "OUIYA Mega Deals" : selectedCategory}`,
+      subtitle: "Discover best local offers & discount vouchers in Pondicherry",
+      discount: "Up to 50% OFF",
+      bg: "from-red-600 via-rose-700 to-primary-dark"
+    };
+  }, [selectedCategory]);
 
-  // Popular and Recommended subgroups in this category
-  const categoryPopular = offers.filter(o => o.isTopOffer);
-  const categoryRecommended = offers.slice().reverse(); // Mock recommended
+  // Filtered offers by sub-category tab
+  const filteredOffers = useMemo(() => {
+    if (activeSubCategory === "All") return offers;
+    return offers.filter(o => 
+      o.title.toLowerCase().includes(activeSubCategory.toLowerCase()) ||
+      o.description?.toLowerCase().includes(activeSubCategory.toLowerCase()) ||
+      o.businessName.toLowerCase().includes(activeSubCategory.toLowerCase())
+    );
+  }, [offers, activeSubCategory]);
 
   return (
-    <div className="w-full pb-20 animate-fade-in select-none">
+    <div className="w-full pb-24 animate-fade-in select-none bg-zinc-50 dark:bg-[#0b0f19]">
       
-      {/* 1. Header (Dark) */}
-      <div className="bg-zinc-950 border-b border-zinc-900 px-6 py-5 flex justify-between items-center text-white shrink-0 shadow-md">
+      {/* 1. Header Navigation */}
+      <div className="sticky top-16 z-30 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-8 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <button 
             onClick={handleBack} 
-            className="hover:bg-zinc-900 border border-zinc-800 p-2 rounded-full transition-colors focus:outline-none cursor-pointer"
+            className="hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2 rounded-full transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4.5 h-4.5 text-zinc-700 dark:text-zinc-300" />
           </button>
-          <h2 className="text-base font-black tracking-wider uppercase">
-            {searchQuery ? "Search Results" : (selectedCategory === "All" ? "OUIYA" : selectedCategory)}
-          </h2>
+          <div>
+            <h2 className="text-base font-black tracking-wider uppercase text-zinc-900 dark:text-white leading-tight">
+              {searchQuery ? `Search: "${searchQuery}"` : (selectedCategory === "All" ? "All Categories" : selectedCategory)}
+            </h2>
+            <span className="text-[10px] text-zinc-500 font-semibold">
+              {filteredOffers.length} Deals Available in Pondicherry
+            </span>
+          </div>
         </div>
-        
-        <button 
-          onClick={handleBack}
-          className="hover:bg-zinc-900 border border-zinc-800 p-2 rounded-full transition-colors focus:outline-none cursor-pointer"
-        >
-          <Search className="w-5 h-5" />
-        </button>
+
+        {/* Main Category Quick Selector Bar */}
+        <div className="hidden md:flex items-center gap-2 overflow-x-auto no-scrollbar">
+          {["All", "Electronics", "Mobiles", "Audio", "Food & Dining", "Fashion", "Beauty"].map(catName => (
+            <button
+              key={catName}
+              onClick={() => setSelectedCategory(catName)}
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                selectedCategory === catName 
+                  ? "bg-red-600 text-white shadow-md" 
+                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200"
+              }`}
+            >
+              {catName}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Main Browse Feed Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-8">
-        
-        {/* Search details status */}
-        {(searchQuery || selectedCategory !== "All") && (
-          <div className="text-xs text-zinc-400 dark:text-zinc-500 font-semibold px-1">
-            Showing results for {searchQuery ? `"${searchQuery}"` : selectedCategory} • {offers.length} offers found
-          </div>
-        )}
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
 
-        {/* 2. Popular Deals (Horizontal Scroll) */}
-        {categoryPopular.length > 0 && (
-          <section className="space-y-3.5">
-            <h3 className="text-xs font-black uppercase text-zinc-400 tracking-wider">
-              Popular Deals
+        {/* 2. Sub-Category Scrollable Pills Row (Wireframe Image 2 Requirement) */}
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0 px-2 flex items-center gap-1">
+            <Filter className="w-3 h-3 text-red-500" />
+            <span>Sub-Category:</span>
+          </span>
+          {subCategoriesList.map((subCat) => (
+            <button
+              key={subCat}
+              onClick={() => setActiveSubCategory(subCat)}
+              className={`px-4 py-2 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
+                activeSubCategory === subCat
+                  ? "bg-red-600 text-white shadow-md scale-102"
+                  : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+              }`}
+            >
+              {subCat}
+            </button>
+          ))}
+        </div>
+
+        {/* 3. Category Promotional Hero Banner (Wireframe Image 2 Requirement) */}
+        <div className={`relative rounded-3xl overflow-hidden shadow-xl bg-gradient-to-r ${categoryBanner.bg} text-white p-6 sm:p-8 flex justify-between items-center border border-white/10`}>
+          <div className="space-y-2 max-w-xl z-10">
+            <span className="bg-red-500 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-widest shadow-sm inline-block">
+              {categoryBanner.discount}
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-black leading-tight drop-shadow-md">
+              {categoryBanner.title}
             </h3>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar py-1.5 -mx-4 px-4 scroll-smooth">
-              {categoryPopular.map((offer) => (
-                <div
-                  key={offer.id}
-                  onClick={() => openShopDetails(offer.shopId, offer)}
-                  className="w-44 bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer shrink-0 transition-transform duration-200 hover:-translate-y-0.5"
-                >
-                  <img src={offer.businessLogo} alt={offer.businessName} className="h-28 w-full object-cover" />
-                  <div className="p-3 space-y-1">
-                    <span className="text-[9px] font-black text-red-500 uppercase">{offer.discount}</span>
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate">{offer.businessName}</h4>
-                    <p className="text-[10px] text-zinc-400 truncate leading-none mt-0.5">{offer.title}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 3. Recommended for you (Horizontal Scroll) */}
-        {categoryRecommended.length > 0 && (
-          <section className="space-y-3.5">
-            <h3 className="text-xs font-black uppercase text-zinc-400 tracking-wider">
-              Recommended for you
-            </h3>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar py-1.5 -mx-4 px-4 scroll-smooth">
-              {categoryRecommended.map((offer) => (
-                <div
-                  key={offer.id}
-                  onClick={() => openShopDetails(offer.shopId, offer)}
-                  className="w-48 bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 rounded-2xl p-3 shadow-sm hover:shadow-md cursor-pointer shrink-0 flex gap-3 items-center"
-                >
-                  <img src={offer.businessLogo} alt={offer.businessName} className="w-12 h-12 rounded-xl object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <h4 className="text-xs font-bold text-zinc-900 dark:text-white truncate">{offer.businessName}</h4>
-                    <span className="text-[10px] font-black text-red-500 uppercase block mt-0.5">{offer.discount}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* 4. Brands Section (Horizontal Scroll of logos) */}
-        <section className="space-y-3.5">
-          <h3 className="text-xs font-black uppercase text-zinc-400 tracking-wider">
-            Brands
-          </h3>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
-            {businesses.map((biz) => (
-              <button
-                key={biz.id}
-                onClick={() => openShopDetails(biz.id)}
-                className="w-16 h-16 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 flex items-center justify-center p-2.5 shadow-sm hover:border-red-500 transition-all shrink-0 cursor-pointer"
-              >
-                <img src={biz.logoUrl} alt={biz.name} className="w-full h-full object-contain rounded-xl" />
-              </button>
-            ))}
+            <p className="text-xs sm:text-sm text-zinc-200 font-medium drop-shadow-sm">
+              {categoryBanner.subtitle}
+            </p>
           </div>
-        </section>
+          <div className="hidden sm:block text-right shrink-0 z-10">
+            <button
+              onClick={() => setActiveSubCategory("All")}
+              className="bg-white text-zinc-900 font-black text-xs px-6 py-3 rounded-full shadow-xl hover:bg-zinc-100 transition-all active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <span>Shop All Offers</span>
+              <ChevronRight className="w-4 h-4 text-red-600" />
+            </button>
+          </div>
+        </div>
 
-        {/* 5. Shops List (Double Layout Card System!) */}
-        <section className="space-y-4">
-          <h3 className="text-xs font-black uppercase text-zinc-400 tracking-wider">
-            Available Shops & Offers
-          </h3>
+        {/* 4. Filtered Deal Offers (Wireframe Image 2 Grid & Cards) */}
+        <section className="space-y-4 pt-2">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-white flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-red-600" />
+              <span>{selectedCategory} Deals & Offers</span>
+            </h3>
+            <span className="text-xs font-bold text-zinc-500">
+              {filteredOffers.length} Deals
+            </span>
+          </div>
 
-          <div className="space-y-5">
-            {businesses.map((biz) => {
-              // Get the primary offer for this shop
-              const shopOffer = offers.find(o => o.shopId === biz.id || o.businessName.toLowerCase() === biz.name.toLowerCase());
-
-              if (!shopOffer) return null;
-
-              const isLiked = likedShops[biz.id];
-              const hasVoucher = biz.hasVoucher && biz.vouchers && biz.vouchers.length > 0;
-              const voucher = biz.vouchers?.[0];
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredOffers.map((offer) => {
+              const isLiked = likedOffers[offer.id];
               return (
-                <div 
-                  key={biz.id}
-                  onClick={() => openShopDetails(biz.id, shopOffer)}
-                  className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
+                <div
+                  key={offer.id}
+                  onClick={() => openShopDetails(offer.shopId, offer)}
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-4 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
                 >
-                  {/* MAIN CARD SECTION */}
-                  <div className="p-5 flex gap-4 items-center justify-between">
-                    {/* Left side Image */}
-                    <div className="w-20 h-20 rounded-2xl bg-zinc-100 dark:bg-zinc-800 overflow-hidden shrink-0 border border-zinc-100">
-                      <img src={biz.logoUrl} alt={biz.name} className="w-full h-full object-cover" />
+                  {/* Discount Badge */}
+                  <div className="absolute top-6 left-6 z-10 bg-red-600 text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-md">
+                    {offer.discount}
+                  </div>
+
+                  {/* Like Button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleOfferLike(offer.id); }}
+                    className="absolute top-6 right-6 z-10 bg-white/90 dark:bg-zinc-900/90 p-2 rounded-full text-zinc-400 hover:text-red-500 backdrop-blur-md transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Heart className={`w-4 h-4 ${isLiked ? "fill-red-600 text-red-600" : ""}`} />
+                  </button>
+
+                  {/* Product Image */}
+                  <div className="relative aspect-square rounded-2xl overflow-hidden mb-4 bg-zinc-100 dark:bg-zinc-950 border border-zinc-100 dark:border-zinc-850">
+                    <img
+                      src={offer.businessLogo || "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop&q=80"}
+                      alt={offer.businessName}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+
+                  {/* Product Details */}
+                  <div className="space-y-2 flex-grow">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-[10px] font-extrabold uppercase text-red-600 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-md">
+                        {offer.category || "Offer"}
+                      </span>
+                      <div className="flex items-center gap-1 text-amber-500 text-[10px] font-black shrink-0">
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span>{offer.rating || 4.5}</span>
+                      </div>
                     </div>
 
-                    {/* Middle Info */}
-                    <div className="flex-1 min-w-0 space-y-1.5 pl-1.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-base font-black text-zinc-900 dark:text-white truncate">
-                          {biz.name}
-                        </h4>
-                        <div className="flex items-center gap-0.5 text-amber-500 text-[10px] font-black">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <span>{biz.rating}</span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate font-semibold flex items-center gap-0.5">
-                        <MapPin className="w-3.5 h-3.5 text-red-500 shrink-0" />
-                        <span>{biz.address}</span>
-                      </p>
+                    <h4 className="text-sm font-black text-zinc-900 dark:text-white truncate group-hover:text-red-600 transition-colors leading-tight">
+                      {offer.businessName}
+                    </h4>
 
-                      <div className="flex items-center gap-2 flex-wrap pt-0.5">
-                        <span className="text-[10px] font-black uppercase text-red-500">
-                          {shopOffer.discount}
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 line-clamp-2 font-medium leading-snug">
+                      {offer.title}
+                    </p>
+
+                    <p className="text-[11px] text-zinc-400 font-semibold flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-red-500 shrink-0" />
+                      <span className="truncate">{offer.location || "White Town, Pondicherry"} • 1.2 km</span>
+                    </p>
+                  </div>
+
+                  {/* Pricing Footer */}
+                  <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+                    <div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-base font-black text-zinc-900 dark:text-white">
+                          ₹{offer.ouiyaPrice}
                         </span>
-                        {shopOffer.ouiyaPrice && (
-                          <>
-                            <span className="text-zinc-300 dark:text-zinc-700 text-xs font-semibold">•</span>
-                            <span className="text-xs font-black text-zinc-900 dark:text-white">
-                              ₹{shopOffer.ouiyaPrice}
-                            </span>
-                            {shopOffer.originalPrice && (
-                              <span className="text-[10px] text-zinc-400 line-through">
-                                ₹{shopOffer.originalPrice}
-                              </span>
-                            )}
-                          </>
+                        {offer.originalPrice && (
+                          <span className="text-xs text-zinc-400 line-through">
+                            ₹{offer.originalPrice}
+                          </span>
                         )}
                       </div>
+                      <span className="text-[9px] text-emerald-600 font-bold block">
+                        Save ₹{(offer.originalPrice || offer.ouiyaPrice * 1.3) - offer.ouiyaPrice}
+                      </span>
                     </div>
 
-                    {/* Right side: Like Heart button */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggleShopLike(biz.id); }}
-                      className="bg-zinc-50 dark:bg-zinc-800 p-2.5 rounded-full text-zinc-400 hover:text-red-500 transition-colors shadow-sm self-start"
+                      onClick={(e) => { e.stopPropagation(); openShopDetails(offer.shopId, offer); }}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer flex items-center gap-1"
                     >
-                      <Heart className={`w-4.5 h-4.5 ${isLiked ? "fill-red-500 text-red-500" : ""}`} />
+                      <span>Claim</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
-
-                  {/* INTEGRATED VOUCHER CARD (Double Card Layout) */}
-                  {hasVoucher && voucher && (
-                    <div className="px-5 pb-5 pt-0">
-                      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl p-4 flex justify-between items-center shadow-md relative overflow-hidden border border-indigo-400/20">
-                        {/* Decorative circle */}
-                        <div className="absolute -right-6 -bottom-6 w-16 h-16 bg-white/10 rounded-full blur-xl" />
-                        
-                        <div className="space-y-0.5 relative z-10">
-                          <span className="text-[8px] font-black tracking-widest bg-white/20 text-white px-2 py-0.5 rounded-full uppercase">
-                            GIFT VOUCHER
-                          </span>
-                          <h5 className="text-xs font-bold mt-1">
-                            {biz.name} Value Voucher
-                          </h5>
-                          <p className="text-[9px] text-indigo-100">
-                            Valid Till: {voucher.expiry}
-                          </p>
-                        </div>
-
-                        <div className="text-right relative z-10">
-                          <span className="text-lg font-black tracking-tight block">
-                            {voucher.discount}
-                          </span>
-                          <span className="text-[9px] font-black uppercase text-indigo-200 tracking-wider">
-                            CLAIM NOW
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                 </div>
               );
             })}

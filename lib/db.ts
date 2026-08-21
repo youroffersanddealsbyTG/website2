@@ -765,30 +765,13 @@ export const getOffers = async (filters?: {
 
   const localAds = getLocalAds();
 
-  let allOffers: Offer[] = [];
-  if (firestoreOffers.length > 0) {
-    // When Firebase data is present, display ONLY Firebase offers (and user local ads)
-    allOffers = [...firestoreOffers, ...localAds];
-  } else if (localAds.length > 0) {
-    allOffers = [...localAds];
-  } else {
-    // Fallback to mock offers only when no Firebase data exists
-    allOffers = [...INITIAL_MOCK_OFFERS];
-  }
+  // Combine live Firestore offers with user-created local ads
+  let allOffers: Offer[] = [...firestoreOffers, ...localAds];
 
   // Map and apply fallbacks for missing/empty fields
   allOffers = allOffers.map(o => {
-    const fallbackLogos: Record<string, string> = {
-      "Food": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&auto=format&fit=crop&q=80",
-      "Electronics": "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=400&auto=format&fit=crop&q=80",
-      "Spa Deals": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&auto=format&fit=crop&q=80",
-      "Saloon": "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&auto=format&fit=crop&q=80",
-      "Health": "https://images.unsplash.com/photo-1631549911990-95c2108f9029?w=400&auto=format&fit=crop&q=80",
-      "Entertainment": "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=400&auto=format&fit=crop&q=80"
-    };
-
     const categoryKey = o.category || "Food";
-    const defaultLogo = fallbackLogos[categoryKey] || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80";
+    const defaultLogo = "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80";
 
     return {
       ...o,
@@ -798,7 +781,7 @@ export const getOffers = async (filters?: {
       ouiyaPrice: o.ouiyaPrice || 499,
       originalPrice: o.originalPrice || 999,
       discount: o.discount || "50% OFF",
-      shopId: o.shopId || `biz-${o.businessName.toLowerCase().replace(/\s+/g, "")}`
+      shopId: o.shopId || `biz-${(o.businessName || "shop").toLowerCase().replace(/\s+/g, "")}`
     };
   });
 
@@ -806,7 +789,7 @@ export const getOffers = async (filters?: {
   if (filters) {
     const { category, query: searchQuery, location } = filters;
     
-    if (category && category !== "All" && category !== "More") {
+    if (category && category !== "All" && category !== "More" && category !== "For You") {
       allOffers = allOffers.filter(
         (o) => o.category.toLowerCase() === category.toLowerCase()
       );
@@ -873,16 +856,11 @@ export const getBusinessesFromFirebase = async (): Promise<Business[]> => {
       });
       firestoreBusinesses = Object.values(shopsMap);
     } catch {
-      // Graceful fallback
+      // Graceful error handle
     }
   }
 
-  // When Firebase data exists, return ONLY Firebase businesses
-  if (firestoreBusinesses.length > 0) {
-    return firestoreBusinesses;
-  }
-
-  return MOCK_BUSINESSES;
+  return firestoreBusinesses;
 };
 
 // Query Firestore `reviews` collection for a shop
@@ -954,11 +932,20 @@ export const createAdvertisement = async (ad: Omit<Offer, "id">): Promise<Offer>
 };
 
 export const getBusinesses = (): Business[] => {
-  return MOCK_BUSINESSES;
+  return [];
 };
 
 export const getCategories = (): Category[] => {
-  return MOCK_CATEGORIES;
+  return [
+    { id: "cat-1", name: "Fashion", iconName: "Shirt", offersCount: 0 },
+    { id: "cat-2", name: "Mobiles", iconName: "Smartphone", offersCount: 0 },
+    { id: "cat-3", name: "Electronics", iconName: "Smartphone", offersCount: 0 },
+    { id: "cat-4", name: "Beauty", iconName: "Sparkles", offersCount: 0 },
+    { id: "cat-5", name: "Home", iconName: "Home", offersCount: 0 },
+    { id: "cat-6", name: "Food & Dining", iconName: "Utensils", offersCount: 0 },
+    { id: "cat-7", name: "Travel", iconName: "Plane", offersCount: 0 },
+    { id: "cat-8", name: "Automotive", iconName: "Car", offersCount: 0 }
+  ];
 };
 
 export const getAdvertiserStats = () => {

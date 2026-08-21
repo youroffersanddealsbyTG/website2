@@ -30,6 +30,9 @@ interface AppContextProps {
   searchQuery: string;
   themeMode: "light" | "dark" | "system";
   theme: "light" | "dark";
+  location: string;
+  isLocationModalOpen: boolean;
+  cartConflictOffer: Offer | null;
   
   // Auth state & actions
   user: User | null;
@@ -51,6 +54,9 @@ interface AppContextProps {
   setTab: (tab: "home" | "categories" | "cart" | "discover") => void;
   setSelectedCategory: (category: string) => void;
   setSearchQuery: (query: string) => void;
+  setLocation: (loc: string) => void;
+  openLocationModal: () => void;
+  closeLocationModal: () => void;
   openShopDetails: (shopId: string, clickedOffer?: Offer) => void;
   closeShopDetails: () => void;
   openOfferDetails: (offer: Offer) => void;
@@ -59,6 +65,7 @@ interface AppContextProps {
   removeFromCart: (offerId: string) => void;
   updateCartQuantity: (offerId: string, delta: number) => void;
   clearCart: () => void;
+  resolveCartConflict: (clearAndAdd: boolean) => void;
   processPayment: () => void;
   closeCouponSuccess: () => void;
   setThemeMode: (mode: "light" | "dark" | "system") => void;
@@ -83,7 +90,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [couponExpiry, setCouponExpiry] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  
+  const [location, setLocation] = useState<string>("White Town, Pondicherry");
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
+  const [cartConflictOffer, setCartConflictOffer] = useState<Offer | null>(null);
+
+  const openLocationModal = () => setIsLocationModalOpen(true);
+  const closeLocationModal = () => setIsLocationModalOpen(false);
+
   // Discover Pondicherry actions
   const openDestinationDetails = (dest: TouristDestination) => {
     setSelectedDestination(dest);
@@ -120,6 +133,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addToCartDirect = (offer: Offer) => {
+    // Single-store restriction: all cart items must belong to the same business/shop
+    if (cart.length > 0) {
+      const firstShopName = cart[0].offer.businessName.trim().toLowerCase();
+      const newShopName = offer.businessName.trim().toLowerCase();
+      if (firstShopName !== newShopName) {
+        setCartConflictOffer(offer);
+        return;
+      }
+    }
+
     const existingIndex = cart.findIndex((item) => item.offer.id === offer.id);
     if (existingIndex > -1) {
       const updated = [...cart];
@@ -129,6 +152,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveCartToStorage([...cart, { offer, quantity: 1 }]);
     }
     setTab("cart");
+  };
+
+  const resolveCartConflict = (clearAndAdd: boolean) => {
+    if (clearAndAdd && cartConflictOffer) {
+      const offerToAdd = cartConflictOffer;
+      setCartConflictOffer(null);
+      saveCartToStorage([{ offer: offerToAdd, quantity: 1 }]);
+      setTab("cart");
+    } else {
+      setCartConflictOffer(null);
+    }
   };
 
   const loginWithGoogle = async () => {
@@ -425,6 +459,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         searchQuery,
         themeMode,
         theme,
+        location,
+        isLocationModalOpen,
+        cartConflictOffer,
         user,
         authLoading,
         isAuthModalOpen,
@@ -440,6 +477,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setTab,
         setSelectedCategory,
         setSearchQuery,
+        setLocation,
+        openLocationModal,
+        closeLocationModal,
         openShopDetails,
         closeShopDetails,
         openOfferDetails,
@@ -448,6 +488,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         removeFromCart,
         updateCartQuantity,
         clearCart,
+        resolveCartConflict,
         processPayment,
         closeCouponSuccess,
         setThemeMode,

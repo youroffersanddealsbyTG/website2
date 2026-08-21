@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "../lib/AppContext";
 import { getOffers, getCategories, getBusinesses, getBusinessesFromFirebase, Offer, Category, Business } from "../lib/db";
 import BottomNav from "../components/BottomNav";
@@ -81,16 +81,16 @@ export default function AppHome() {
     setSearchQuery, 
     openShopDetails,
     likedOffers,
-    toggleOfferLike 
+    toggleOfferLike,
+    cartConflictOffer,
+    resolveCartConflict
   } = useApp();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [showAllCategories, setShowAllCategories] = useState(false);
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  
-
+  const [carouselIndex1, setCarouselIndex1] = useState(0);
+  const [carouselIndex2, setCarouselIndex2] = useState(0);
 
   // Fetch initial data
   useEffect(() => {
@@ -101,10 +101,16 @@ export default function AppHome() {
 
   // Auto scroll banners
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCarouselIndex((prev) => (prev + 1) % AD_BANNERS.length);
+    const timer1 = setInterval(() => {
+      setCarouselIndex1((prev) => (prev + 1) % 3);
     }, 4500);
-    return () => clearInterval(timer);
+    const timer2 = setInterval(() => {
+      setCarouselIndex2((prev) => (prev + 1) % 3);
+    }, 5500);
+    return () => {
+      clearInterval(timer1);
+      clearInterval(timer2);
+    };
   }, []);
 
   const handleCategoryClick = (categoryName: string) => {
@@ -119,225 +125,188 @@ export default function AppHome() {
     }
   };
 
+  // Algorithm logic: filter recommended offers based on user likes
+  const likedCategories = useMemo(() => {
+    const cats = new Set<string>();
+    offers.forEach(o => {
+      if (likedOffers[o.id] && o.category) {
+        cats.add(o.category.toLowerCase());
+      }
+    });
+    return Array.from(cats);
+  }, [likedOffers, offers]);
 
+  const recommendedOffers = useMemo(() => {
+    if (likedCategories.length > 0) {
+      const matched = offers.filter(o => o.category && likedCategories.includes(o.category.toLowerCase()));
+      if (matched.length >= 2) return matched;
+    }
+    return offers;
+  }, [likedCategories, offers]);
 
-  // Filter listings
   const popularOffers = offers.filter(o => o.isTopOffer);
-  const recommendedOffers = offers; // Simulated recommendations
-  const trendingNow = offers.slice(0, 3); // Mock trending
+  const trendingNow = offers.slice(0, 4);
   const trendingVouchers = businesses.filter(b => b.hasVoucher);
 
   // Render home page feed
   const renderHomeFeed = () => (
-    <div className="w-full pb-28 animate-fade-in select-none bg-white dark:bg-[#0b0f19]">
-      {/* 1. Hero Section — Theme-Aware */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-white via-white to-white dark:from-[#05070e] dark:via-[#0b0f19] dark:to-[#0b0f19] px-6 py-12 md:py-24 border-b border-zinc-200 dark:border-zinc-900">
-        {/* Glow Effects */}
-        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -right-20 w-80 h-80 bg-red-200/20 dark:bg-red-900/10 rounded-full blur-3xl" />
-        
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          {/* Left Column: Heading, Search & Shortcuts */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary px-3.5 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase">
-              <Ticket className="w-3.5 h-3.5 rotate-90" />
-              <span>Smart Savings Hub</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight text-zinc-900 dark:text-white animate-fade-in">
-              Find Best Offers <br />
-              <span className="text-primary">Near You!</span>
-            </h1>
-
-            <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm md:text-base font-semibold max-w-xl leading-relaxed">
-              Discover amazing deals, exclusive coupons & exciting dining/shopping offers from top businesses in your city.
-            </p>
-
-            {/* Search Box — Theme-Aware */}
-            <form onSubmit={handleSearchSubmit} className="bg-white dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-2xl sm:rounded-full p-2 shadow-xl dark:shadow-2xl flex flex-col sm:flex-row items-center gap-2 max-w-2xl">
-              <div className="flex-grow w-full flex items-center gap-2.5 px-3.5">
-                <Search className="w-5 h-5 text-zinc-400 dark:text-zinc-500 shrink-0" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for offers, stores, categories..."
-                  className="w-full bg-transparent border-none text-zinc-900 dark:text-zinc-100 focus:outline-none placeholder-zinc-400 dark:placeholder-zinc-500 text-xs py-3"
-                />
-              </div>
-
-              <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
-
-              <div className="w-full sm:w-auto flex items-center gap-2 px-3.5 shrink-0">
-                <MapPin className="w-4.5 h-4.5 text-primary shrink-0" />
-                <select
-                  value="Puducherry"
-                  onChange={() => {}}
-                  className="bg-transparent border-none text-zinc-700 dark:text-zinc-200 text-xs font-black focus:outline-none cursor-pointer py-3 pr-6"
-                >
-                  <option value="Puducherry">Puducherry</option>
-                  <option value="Chennai">Chennai</option>
-                  <option value="Bangalore">Bangalore</option>
-                </select>
-              </div>
-
-              <button 
-                type="submit"
-                className="w-full sm:w-auto bg-primary hover:bg-primary-hover text-white font-black text-xs px-7 py-3.5 rounded-xl sm:rounded-full transition-all shadow-lg shadow-primary/20 cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
-              >
-                <Search className="w-3.5 h-3.5" />
-                <span>Search</span>
-              </button>
-            </form>
-
-            {/* Quick shortcuts pills */}
-            <div className="flex flex-wrap gap-2 pt-2">
-              <button 
-                onClick={() => { setTab("discover"); }} 
-                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black text-white bg-gradient-to-r from-amber-500 to-rose-500 rounded-full transition-all cursor-pointer shadow-md shadow-amber-500/20 scale-105"
-              >
-                <Compass className="w-3.5 h-3.5 text-white" />
-                <span>Discover Pondicherry 📍</span>
-              </button>
-              <button 
-                onClick={() => { setTab("categories"); }} 
-                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:border-primary bg-white dark:bg-zinc-900/50 hover:bg-primary/5 dark:hover:bg-zinc-900 rounded-full transition-all cursor-pointer"
-              >
-                <MapPin className="w-3.5 h-3.5 text-primary" />
-                <span>Near Me</span>
-              </button>
-              <button 
-                onClick={() => { setTab("home"); }} 
-                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:border-primary bg-white dark:bg-zinc-900/50 hover:bg-primary/5 dark:hover:bg-zinc-900 rounded-full transition-all cursor-pointer"
-              >
-                <Star className="w-3.5 h-3.5 text-primary" />
-                <span>Top Offers</span>
-              </button>
-              <button 
-                onClick={() => { setTab("categories"); }} 
-                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:border-primary bg-white dark:bg-zinc-900/50 hover:bg-primary/5 dark:hover:bg-zinc-900 rounded-full transition-all cursor-pointer"
-              >
-                <Ticket className="w-3.5 h-3.5 text-primary" />
-                <span>Coupons</span>
-              </button>
-              <button 
-                onClick={() => { setTab("home"); }} 
-                className="flex items-center gap-1.5 px-4 py-2 text-[10px] font-black text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:border-primary bg-white dark:bg-zinc-900/50 hover:bg-primary/5 dark:hover:bg-zinc-900 rounded-full transition-all cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
-                <span>New Arrivals</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Right Column: Floating Circle Frame */}
-          <div className="lg:col-span-5 flex justify-center relative mt-6 lg:mt-0">
-            <div className="relative flex items-center justify-center p-6">
-              {/* Rotating dashed ring */}
-              <div className="absolute inset-0 rounded-full border border-dashed border-primary/30 animate-[spin_60s_linear_infinite] scale-102" />
-              
-              {/* Circular Image Frame */}
-              <div className="w-64 h-64 sm:w-72 sm:h-72 rounded-full border-4 border-zinc-200 dark:border-zinc-900 overflow-hidden relative shadow-2xl z-10">
-                <img 
-                  src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&auto=format&fit=crop&q=80" 
-                  alt="OUIYA Shopping Model" 
-                  className="w-full h-full object-cover scale-105 hover:scale-110 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/40 via-transparent to-transparent" />
-              </div>
-
-              {/* Floating Badge Left */}
-              <div className="absolute top-10 -left-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 shadow-2xl z-20 flex items-center gap-3 max-w-[140px] backdrop-blur-md">
-                <div className="bg-primary/10 dark:bg-primary/20 p-2 rounded-xl text-primary shrink-0">
-                  <Ticket className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black text-primary uppercase leading-none">50% OFF</span>
-                  <span className="text-[8px] font-bold text-zinc-500 dark:text-zinc-400 leading-tight mt-1 block">On First Order</span>
-                </div>
-              </div>
-
-              {/* Floating Badge Right */}
-              <div className="absolute bottom-10 -right-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 shadow-2xl z-20 flex items-center gap-3 max-w-[145px] backdrop-blur-md">
-                <div className="bg-emerald-500/10 dark:bg-emerald-500/20 p-2 rounded-xl text-emerald-500 shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase leading-none">100% Verified</span>
-                  <span className="text-[8px] font-bold text-zinc-500 dark:text-zinc-400 leading-tight mt-1 block">Trusted Partners</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Red Statistics Banner */}
-      <section className="bg-gradient-to-r from-primary-dark via-primary to-primary-dark text-white py-10 shadow-lg relative z-10 shrink-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 md:divide-x md:divide-white/10 items-center justify-center text-center">
-            {/* Stat 1 */}
-            <div className="flex flex-col items-center gap-2">
-              <Users className="w-6 h-6 text-white/90" />
-              <span className="text-2xl font-black tracking-tight mt-1">10K+</span>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-red-100">Happy Customers</span>
-            </div>
-            {/* Stat 2 */}
-            <div className="flex flex-col items-center gap-2">
-              <Building2 className="w-6 h-6 text-white/90" />
-              <span className="text-2xl font-black tracking-tight mt-1">2K+</span>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-red-100">Top Businesses</span>
-            </div>
-            {/* Stat 3 */}
-            <div className="flex flex-col items-center gap-2">
-              <Gift className="w-6 h-6 text-white/90" />
-              <span className="text-2xl font-black tracking-tight mt-1">5K+</span>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-red-100">Offers & Coupons</span>
-            </div>
-            {/* Stat 4 */}
-            <div className="flex flex-col items-center gap-2">
-              <Download className="w-6 h-6 text-white/90" />
-              <span className="text-2xl font-black tracking-tight mt-1">50K+</span>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-red-100">App Downloads</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
+    <div className="w-full pb-28 animate-fade-in select-none bg-zinc-100 dark:bg-[#0b0f19]">
+      
       {/* Main Content Area Container (Wide max-w-7xl) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 space-y-12 pb-24">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 pt-4 space-y-5 pb-24">
         
-        {/* 3. Categories circular icons scroll (Placed below the Stats Banner) */}
-        <section className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-sm font-black uppercase text-zinc-900 dark:text-white tracking-wider flex items-center gap-1.5">
-              <Compass className="w-4 h-4 text-primary" />
-              <span>Browse Categories</span>
-            </h3>
-            
+        {/* 1. Flipkart Top Categories Scroll Bar (Wireframe & Flipkart Screenshot) */}
+        <section className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 shadow-sm">
+          <div className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-1 scroll-smooth">
+            {/* For You / All active tab */}
             <button
-              onClick={() => setShowAllCategories(!showAllCategories)}
-              className="text-[10px] font-black uppercase text-zinc-600 dark:text-zinc-400 hover:text-primary border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 rounded-full px-4 py-2 transition-all bg-white dark:bg-zinc-900 cursor-pointer shadow-sm"
+              onClick={() => handleCategoryClick("All")}
+              className="flex flex-col items-center gap-1.5 group cursor-pointer focus:outline-none shrink-0 min-w-[70px] sm:min-w-[85px]"
             >
-              {showAllCategories ? "Show less" : "Show all"}
+              <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <span className="text-[11px] font-black text-red-600 dark:text-red-400 text-center leading-tight">
+                For You
+              </span>
             </button>
-          </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-4 pt-2">
-            {(showAllCategories ? categories : categories.slice(0, 5)).map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategoryClick(cat.name)}
-                className="flex flex-col items-center gap-2.5 group cursor-pointer focus:outline-none bg-white dark:bg-zinc-950/40 border border-zinc-200 dark:border-zinc-850 p-4 rounded-2xl hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/5 transition-all duration-300 shadow-sm"
+                className="flex flex-col items-center gap-1.5 group cursor-pointer focus:outline-none shrink-0 min-w-[70px] sm:min-w-[85px]"
               >
-                <div className="w-12 h-12 rounded-full border border-zinc-200 dark:border-zinc-800 bg-slate-100 dark:bg-zinc-900 group-hover:scale-105 flex items-center justify-center transition-transform shadow-sm group-hover:text-primary text-zinc-600 dark:text-zinc-400">
-                  <IconRenderer name={cat.iconName} className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800 group-hover:bg-red-50 dark:group-hover:bg-red-950/30 group-hover:border-red-500 flex items-center justify-center transition-all shadow-sm text-zinc-700 dark:text-zinc-300 group-hover:text-red-600">
+                  <IconRenderer name={cat.iconName} className="w-5.5 h-5.5" />
                 </div>
-                <span className="text-[10px] font-black text-zinc-550 dark:text-zinc-400 text-center leading-tight line-clamp-1 group-hover:text-zinc-900 dark:group-hover:text-white uppercase tracking-wider transition-colors">
+                <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 text-center leading-tight line-clamp-1 group-hover:text-red-600 transition-colors">
                   {cat.name}
                 </span>
               </button>
             ))}
+          </div>
+        </section>
+
+        {/* 2. Flipkart Hero Ad Banners Grid (Matching Flipkart Screenshot Image 1) */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Banner 1: Nivea / Skincare */}
+          <div className="relative h-48 sm:h-52 rounded-2xl overflow-hidden shadow-md border border-zinc-200 dark:border-zinc-800 group cursor-pointer">
+            <img
+              src="https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&auto=format&fit=crop&q=80"
+              alt="Nivea Skincare"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-sky-900/90 via-sky-800/40 to-transparent p-5 flex flex-col justify-between text-white">
+              <span className="bg-sky-600 text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full w-fit">
+                NIVEA
+              </span>
+              <div>
+                <h4 className="text-lg font-black leading-tight drop-shadow-md">Get hydrated skin</h4>
+                <p className="text-xl font-extrabold text-yellow-300 mt-0.5">Up to 50% Off</p>
+                <p className="text-[10px] text-sky-100 mt-1 font-semibold">Natural & improved formula</p>
+              </div>
+              <span className="self-end text-[8px] bg-black/40 text-zinc-300 px-1.5 py-0.5 rounded uppercase font-bold">AD</span>
+            </div>
+          </div>
+
+          {/* Banner 2: Boltt / Tech Launch */}
+          <div className="relative h-48 sm:h-52 rounded-2xl overflow-hidden shadow-md border border-zinc-200 dark:border-zinc-800 group cursor-pointer">
+            <img
+              src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80"
+              alt="ACE 5G Smartphone Launch"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/60 to-transparent p-5 flex flex-col justify-between text-white">
+              <div className="flex items-center gap-1.5">
+                <span className="bg-yellow-400 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded">
+                  OUIYA Unique
+                </span>
+              </div>
+              <div>
+                <h4 className="text-xl font-black tracking-wide text-white">ACE 5G</h4>
+                <p className="text-xs font-bold text-yellow-400 mt-0.5">Launch 25th Aug, 12 PM</p>
+                <p className="text-[10px] text-zinc-300 mt-1">Pick your perfect shade</p>
+              </div>
+              <span className="self-end text-[8px] bg-black/40 text-zinc-300 px-1.5 py-0.5 rounded uppercase font-bold">AD</span>
+            </div>
+          </div>
+
+          {/* Banner 3: Realme / Mobile Launch */}
+          <div className="relative h-48 sm:h-52 rounded-2xl overflow-hidden shadow-md border border-zinc-200 dark:border-zinc-800 group cursor-pointer hidden md:block">
+            <img
+              src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&auto=format&fit=crop&q=80"
+              alt="Realme 5G Flagship"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-950/95 via-teal-900/60 to-transparent p-5 flex flex-col justify-between text-white">
+              <span className="bg-teal-500 text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full w-fit">
+                realme | OUIYA
+              </span>
+              <div>
+                <h4 className="text-lg font-black leading-tight">realme P4s 5G</h4>
+                <p className="text-xs font-bold text-teal-300 mt-0.5">Launch 26th Aug</p>
+                <p className="text-[10px] text-teal-100 mt-1">Flagship 1.5K 144Hz Screen</p>
+              </div>
+              <span className="self-end text-[8px] bg-black/40 text-zinc-300 px-1.5 py-0.5 rounded uppercase font-bold">AD</span>
+            </div>
+          </div>
+        </section>
+
+        {/* 3. Flipkart Top Deals Cards Grid (Matching Flipkart Screenshot Image 1) */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Card 1: Water Purifiers */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between group cursor-pointer hover:shadow-md transition-all">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-800 mb-3 border border-zinc-100 dark:border-zinc-800">
+              <img
+                src="https://images.unsplash.com/photo-1542013936693-884638332954?w=400&auto=format&fit=crop&q=80"
+                alt="Water Purifiers"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <span className="absolute top-2 right-2 text-[8px] bg-black/50 text-white px-1.5 py-0.5 rounded font-bold">AD</span>
+            </div>
+            <div>
+              <button className="w-full bg-red-600 text-white text-xs font-black py-2 rounded-xl mb-1.5 shadow-sm group-hover:bg-red-700 transition-colors">
+                Shop now
+              </button>
+              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 text-center">Purity in every sip</p>
+            </div>
+          </div>
+
+          {/* Card 2: L'Oreal Haircare */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between group cursor-pointer hover:shadow-md transition-all">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-800 mb-3 border border-zinc-100 dark:border-zinc-800">
+              <img
+                src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&auto=format&fit=crop&q=80"
+                alt="L'Oreal Paris Haircare"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <span className="absolute top-2 right-2 text-[8px] bg-black/50 text-white px-1.5 py-0.5 rounded font-bold">AD</span>
+            </div>
+            <div>
+              <button className="w-full bg-red-600 text-white text-xs font-black py-2 rounded-xl mb-1.5 shadow-sm group-hover:bg-red-700 transition-colors">
+                Up to 15% Off
+              </button>
+              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 text-center">Easy detangling</p>
+            </div>
+          </div>
+
+          {/* Card 3: Adidas Shoes */}
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between group cursor-pointer hover:shadow-md transition-all">
+            <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-50 dark:bg-zinc-800 mb-3 border border-zinc-100 dark:border-zinc-800">
+              <img
+                src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&auto=format&fit=crop&q=80"
+                alt="Adidas Shoes"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <span className="absolute top-2 right-2 text-[8px] bg-black/50 text-white px-1.5 py-0.5 rounded font-bold">AD</span>
+            </div>
+            <div>
+              <button className="w-full bg-red-600 text-white text-xs font-black py-2 rounded-xl mb-1.5 shadow-sm group-hover:bg-red-700 transition-colors">
+                Min. 40% Off
+              </button>
+              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 text-center">Gear up with adidas</p>
+            </div>
           </div>
         </section>
 
@@ -348,7 +317,7 @@ export default function AppHome() {
               <div
                 key={ad.id}
                 className={`absolute inset-0 w-full h-full flex flex-col justify-end p-8 text-white transition-opacity duration-700 ${
-                  idx === carouselIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                  idx === carouselIndex1 ? "opacity-100 z-10" : "opacity-0 z-0"
                 }`}
               >
                 <img
@@ -374,9 +343,9 @@ export default function AppHome() {
             {AD_BANNERS.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setCarouselIndex(i)}
+                onClick={() => setCarouselIndex1(i)}
                 className={`h-1.5 rounded-full transition-all duration-350 ${
-                  i === carouselIndex ? "w-5 bg-white" : "w-1.5 bg-white/50"
+                  i === carouselIndex1 ? "w-5 bg-white" : "w-1.5 bg-white/50"
                 }`}
               />
             ))}
@@ -532,12 +501,35 @@ export default function AppHome() {
                     <Heart className={`w-4 h-4 ${likedOffers[offer.id] ? "fill-primary text-primary" : ""}`} />
                   </button>
                   
-                  <span className="text-sm font-black text-zinc-900 dark:text-white bg-slate-100 dark:bg-zinc-950 px-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                    ₹{offer.ouiyaPrice}
-                  </span>
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Carousel Advertisement 2 (Annotated wireframe Image 1 rule) */}
+        <section className="relative h-44 rounded-3xl overflow-hidden shadow-xl border border-red-200 dark:border-red-900/40 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white p-6 flex items-center justify-between">
+          <div className="space-y-2 z-10 max-w-lg">
+            <span className="bg-white/20 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-white/30 backdrop-blur-md">
+              EXTRA SAVINGS %
+            </span>
+            <h3 className="text-xl sm:text-2xl font-black leading-tight drop-shadow-md">
+              Save More with Coupons!
+            </h3>
+            <p className="text-xs text-red-100 font-semibold drop-shadow-sm">
+              Grab exclusive discount codes from top Pondicherry stores instantly.
+            </p>
+            <button
+              onClick={() => handleCategoryClick("Food & Dining")}
+              className="bg-white text-red-600 font-black text-xs px-5 py-2.5 rounded-full shadow-lg hover:bg-red-50 transition-all active:scale-95 cursor-pointer mt-2 inline-flex items-center gap-1.5"
+            >
+              <span>View Coupons</span>
+              <Ticket className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="hidden sm:flex items-center justify-center w-36 h-36 bg-white/10 rounded-full border border-white/20 backdrop-blur-md relative shrink-0">
+            <Ticket className="w-20 h-20 text-white/90 rotate-12" />
           </div>
         </section>
 
@@ -667,6 +659,49 @@ export default function AppHome() {
       <SideDrawer />
       <AuthModal />
       <DestinationDetailModal />
+
+      {/* Cart Conflict Warning Modal (Annotated wireframe Image 5 rule: Same shop offers only) */}
+      {cartConflictOffer && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative animate-scale-up text-center space-y-4">
+            <div className="w-14 h-14 bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center mx-auto border border-red-200 dark:border-red-800">
+              <Building2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 px-3 py-1 rounded-full border border-red-200 dark:border-red-900/50">
+                Single Store Purchase Only
+              </span>
+              <h3 className="text-base font-black text-zinc-900 dark:text-white pt-1">
+                Different Business Selected
+              </h3>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+                Your cart contains offers from another store. Each purchase generates a single QR code for one business.
+              </p>
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded-2xl border border-zinc-200 dark:border-zinc-800 text-left text-xs space-y-1">
+                <p className="text-[11px] text-zinc-500 font-bold">Offer you are trying to add:</p>
+                <p className="font-black text-zinc-900 dark:text-white">{cartConflictOffer.title}</p>
+                <p className="text-red-600 font-bold text-[11px]">{cartConflictOffer.businessName}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                onClick={() => resolveCartConflict(false)}
+                className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold py-3 rounded-2xl text-xs transition-colors cursor-pointer"
+              >
+                Keep Current Cart
+              </button>
+              <button
+                onClick={() => resolveCartConflict(true)}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-2xl text-xs shadow-lg shadow-red-600/20 transition-transform active:scale-95 cursor-pointer"
+              >
+                Clear & Add New Offer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sticky Bottom Navigation */}
       <BottomNav />
