@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useApp } from "../../lib/AppContext";
-import { PONDICHERRY_DESTINATIONS, DESTINATION_CATEGORIES, REGISTERED_PARTNER_SHOPS, TouristDestination } from "../../lib/discoverData";
+import { PONDICHERRY_DESTINATIONS, getDestinationsFromFirebase, DESTINATION_CATEGORIES, REGISTERED_PARTNER_SHOPS, TouristDestination } from "../../lib/discoverData";
 import { Search, Compass, Star, MapPin, Clock, ArrowRight, Sparkles, Navigation, Layers, Map } from "lucide-react";
 import PondicherryMapModal from "../../components/PondicherryMapModal";
 
@@ -31,10 +31,15 @@ const HERO_SLIDES = [
 
 export default function DiscoverPondicherryView() {
   const { openDestinationDetails } = useApp();
+  const [destinations, setDestinations] = useState<TouristDestination[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isMapOpen, setIsMapOpen] = useState(false);
+
+  useEffect(() => {
+    getDestinationsFromFirebase().then(setDestinations);
+  }, []);
 
   // Auto cross-fade background slides every 4.5 seconds
   useEffect(() => {
@@ -45,7 +50,7 @@ export default function DiscoverPondicherryView() {
   }, []);
 
   // Filter destinations by category & search query
-  const filteredDestinations = PONDICHERRY_DESTINATIONS.filter((dest) => {
+  const filteredDestinations = destinations.filter((dest) => {
     const matchesCategory = selectedCategory === "All" || dest.category === selectedCategory;
     const matchesSearch = 
       dest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -78,7 +83,7 @@ export default function DiscoverPondicherryView() {
 
         <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-indigo-950/70 to-transparent z-0" />
 
-        <div className="relative z-10 max-w-7xl mx-auto space-y-6 text-center lg:text-left">
+        <div className="relative z-10 max-w-[1600px] mx-auto space-y-6 text-center lg:text-left">
           
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
             <div className="inline-flex items-center gap-2 bg-primary/20 border border-primary/30 text-primary-light px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase">
@@ -144,7 +149,7 @@ export default function DiscoverPondicherryView() {
       </div>
 
       {/* 2. Interactive Map Explorer Banner Widget */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
         <div 
           onClick={() => setIsMapOpen(true)}
           className="bg-gradient-to-r from-zinc-900 via-indigo-950 to-zinc-900 border border-zinc-700/60 hover:border-primary rounded-3xl p-5 sm:p-6 shadow-2xl transition-all hover:scale-[1.01] cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-6 group"
@@ -175,7 +180,7 @@ export default function DiscoverPondicherryView() {
       </div>
 
       {/* 3. Destination Card Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
@@ -200,7 +205,7 @@ export default function DiscoverPondicherryView() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
             {filteredDestinations.map((dest) => (
               <div
                 key={dest.id}

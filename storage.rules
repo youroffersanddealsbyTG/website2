@@ -1,185 +1,126 @@
 rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
+service firebase.storage {
+  match /b/{bucket}/o {
 
     // ─────────────────────────────────────────────────────────────────────
     // Helper functions
     // ─────────────────────────────────────────────────────────────────────
+    function isPhoneVerified() {
+      return request.auth != null
+          && request.auth.token.phone_number != null
+          && request.auth.token.phone_number != '';
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
 
-    function isPhoneVerified() {
-      return isSignedIn() 
-          && request.auth.token.phone_number != null 
-          && request.auth.token.phone_number != '';
+    // Allowed file types for business documents
+    function isValidDocument() {
+      return request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('image/(jpeg|png|jpg)');
     }
 
-    function isAdmin() {
-      return isSignedIn() && (
-        (request.auth.token.admin != null && request.auth.token.admin == true) ||
-        (request.auth.token.email != null && request.auth.token.email.matches('.*@youroffersanddeals\\.com$'))
-      );
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Users collection
-    // ─────────────────────────────────────────────────────────────────────
-    match /users/{userId} {
-      allow read: if true; // Public directory info (business profile details)
-      allow create: if isSignedIn();
-      allow update, delete: if isOwner(userId) || isAdmin();
-
-      // User subcollections
-      match /favourites/{favId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-
-      match /favouriteShops/{shopId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-
-      match /cart/{cartId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
-
-      match /notifications/{notifId} {
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
+    // Max 20 MB for document uploads
+    function isValidSize() {
+      return request.resource.size < 20 * 1024 * 1024;
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Offers collection
+    // campaign_banners/{allPaths=**} — Ad campaign banners
     // ─────────────────────────────────────────────────────────────────────
-    match /offers/{offerId} {
+    match /campaign_banners/{allPaths=**} {
+      allow read: if true;
+      allow create, update, write: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // business_documents/{allPaths=**}
+    // ─────────────────────────────────────────────────────────────────────
+    match /business_documents/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow create, update, write: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // offers/{allPaths=**}
+    // ─────────────────────────────────────────────────────────────────────
+    match /offers/{allPaths=**} {
+      allow read: if true;
+      allow create, update, write: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // shops/{allPaths=**}
+    // ─────────────────────────────────────────────────────────────────────
+    match /shops/{allPaths=**} {
+      allow read: if true;
+      allow create, update, write: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // users/{uid}/{fileName} — User profile photos / avatars
+    // ─────────────────────────────────────────────────────────────────────
+    match /users/{uid}/{fileName} {
+      allow read: if true;
+      allow create, update, delete: if isOwner(uid)
+          && request.resource.contentType.matches('image/(jpeg|png|jpg|webp)')
+          && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // banners/{fileName}
+    // ─────────────────────────────────────────────────────────────────────
+    match /banners/{fileName} {
       allow read: if true;
       allow create, update, delete: if isSignedIn();
-
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if isSignedIn();
-        allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid || isOwner(userId));
-      }
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Shops / Business collection
+    // hotspots/{fileName}
     // ─────────────────────────────────────────────────────────────────────
-    match /shops/{shopId} {
+    match /hotspots/{fileName} {
       allow read: if true;
       allow create, update, delete: if isSignedIn();
-
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if isSignedIn();
-        allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid);
-      }
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Reviews collection (Top level)
+    // promo_banners/{fileName}
     // ─────────────────────────────────────────────────────────────────────
-    match /reviews/{reviewId} {
+    match /promo_banners/{fileName} {
       allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid);
+      allow create, update, delete: if isSignedIn();
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Coupons collection
+    // categories/{fileName} — Category icons
     // ─────────────────────────────────────────────────────────────────────
-    match /coupons/{couponId} {
-      allow read: if isSignedIn() || true; // Public verification allowed, full read for signed in
-      allow create, update: if isSignedIn();
-      allow delete: if isAdmin() || isSignedIn();
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Categories, Brands, Banners, Promo Banners, Hotspots
-    // ─────────────────────────────────────────────────────────────────────
-    match /categories/{categoryId} {
+    match /categories/{fileName} {
       allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /brands/{brandId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /banners/{bannerId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /promo_banners/{bannerId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /hotspots/{hotspotId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /convenience_fees/{feeId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Ad Campaigns & Slots
+    // brands/{fileName} — Brand logos
     // ─────────────────────────────────────────────────────────────────────
-    match /ad_campaigns/{campaignId} {
+    match /brands/{fileName} {
       allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /campaigns/{campaignId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    match /ad_slots/{slotId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    // Tourist Destinations / Discover Pondicherry
+    // Default deny
     // ─────────────────────────────────────────────────────────────────────
-    match /tourist_destinations/{destinationId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Chats & Chat Messages
-    // ─────────────────────────────────────────────────────────────────────
-    match /chats/{chatId} {
-      allow read, write: if isSignedIn();
-
-      match /messages/{messageId} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Notifications collection
-    // ─────────────────────────────────────────────────────────────────────
-    match /notifications/{notificationId} {
-      allow read, write: if isSignedIn();
-    }
-
-    // Default deny for all other paths
     match /{allPaths=**} {
       allow read, write: if false;
     }
   }
 }
-

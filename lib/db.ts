@@ -13,6 +13,7 @@ export interface Offer {
   reviewsCount: string;
   code: string;
   category: string;
+  subcategory?: string;
   location: string;
   isTopOffer?: boolean;
   isCoupon?: boolean;
@@ -40,6 +41,7 @@ export interface Category {
   name: string;
   iconName: string;
   offersCount: number;
+  subcategories?: string[];
 }
 
 export interface Business {
@@ -604,6 +606,50 @@ export const INITIAL_MOCK_OFFERS: Offer[] = [
     applicableOn: "Dine-in/Walk-in salon slots.",
     termsAndConditions: ["Prior slot booking via phone recommended."],
     shopId: "biz-nirvana"
+  },
+  {
+    id: "off-11",
+    title: "Pondicherry Heritage Stay",
+    subTitle: "Luxury Heritage Villa",
+    description: "Exclusive heritage villa stay near French Quarter with swimming pool and complimentary breakfast.",
+    businessName: "Pondicherry Heritage Stay",
+    businessLogo: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&auto=format&fit=crop&q=80",
+    discount: "25% OFF",
+    rating: 4.8,
+    reviewsCount: "180",
+    code: "HERITAGE25",
+    category: "Accommodation",
+    subcategory: "villas",
+    location: "Heritage Town, Pondicherry",
+    isTopOffer: true,
+    isCoupon: true,
+    expiryDate: "2026-10-31",
+    originalPrice: 2500,
+    ouiyaPrice: 2000,
+    aboutOffer: "Enjoy luxury heritage villa stay with pool access.",
+    shopId: "biz-heritagestay"
+  },
+  {
+    id: "off-12",
+    title: "Sema sale",
+    subTitle: "Cozy Homestay Room",
+    description: "Cozy homestay room near beach road with modern amenities and warm hospitality.",
+    businessName: "Sema Villa & Homestays",
+    businessLogo: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&auto=format&fit=crop&q=80",
+    discount: "10% OFF",
+    rating: 4.6,
+    reviewsCount: "95",
+    code: "SEMA10",
+    category: "Accommodation",
+    subcategory: "homestays",
+    location: "White Town, Pondicherry",
+    isTopOffer: false,
+    isCoupon: true,
+    expiryDate: "2026-10-31",
+    originalPrice: 2500,
+    ouiyaPrice: 2250,
+    aboutOffer: "Budget-friendly cozy homestay in White Town.",
+    shopId: "biz-semastay"
   }
 ];
 
@@ -710,8 +756,9 @@ export function mapFirestoreOffer(docId: string, data: any): Offer {
     discount: discountStr,
     rating: typeof data.rating === 'number' ? data.rating : 4.5,
     reviewsCount: data.reviewCount ? `${data.reviewCount} reviews` : (data.reviewsCount || "120 reviews"),
-    code: data.promoCode || data.code || `PROMO${Math.floor(Math.random() * 9000 + 1000)}`,
+    code: data.promoCode || data.code || `OUIYA-${docId.substring(0, 6).toUpperCase()}`,
     category: data.category ? (data.category.charAt(0).toUpperCase() + data.category.slice(1)) : "Food",
+    subcategory: data.subcategory || data.subCategory || data.sub_category || "",
     location: data.shopAddress || data.location || "Puducherry",
     isTopOffer: Boolean(data.isFeatured || data.isTopOffer),
     isCoupon: true,
@@ -951,8 +998,8 @@ export const getCategories = (): Category[] => {
 export const getAdvertiserStats = () => {
   const ads = getLocalAds();
   const totalSpent = ads.reduce((sum, ad) => sum + (ad.pricePaid || 0), 0);
-  const totalImpressions = ads.reduce((sum, ad) => sum + (ad.impressions || Math.floor(Math.random() * 200) + 50), 0);
-  const totalClicks = ads.reduce((sum, ad) => sum + (ad.clicks || Math.floor(Math.random() * 30) + 5), 0);
+  const totalImpressions = ads.reduce((sum, ad) => sum + (ad.impressions || 0), 0);
+  const totalClicks = ads.reduce((sum, ad) => sum + (ad.clicks || 0), 0);
 
   return {
     activeAdsCount: ads.filter((ad) => ad.status === "Active").length,
@@ -962,4 +1009,443 @@ export const getAdvertiserStats = () => {
     totalClicks
   };
 };
+
+export interface AppBanner {
+  id: string;
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+  targetOfferId?: string;
+  externalUrl?: string;
+  isActive: boolean;
+  targetScreen?: "home" | "category";
+  categoryId?: string;
+  categoryName?: string;
+}
+
+export interface PromoBanner {
+  id: string;
+  imageUrl: string;
+  targetOfferId?: string;
+  externalUrl?: string;
+  isActive: boolean;
+  targetScreen?: "home" | "category";
+  categoryId?: string;
+  categoryName?: string;
+}
+
+export interface Hotspot {
+  id: string;
+  imageUrl: string;
+  title: string;
+  targetOfferId?: string;
+  externalUrl?: string;
+  isActive: boolean;
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  imageUrl: string;
+  categoryId?: string;
+  businessIds?: string[];
+}
+
+export const getCategoriesFromFirebase = async (): Promise<Category[]> => {
+  let categories: Category[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "categories"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      categories.push({
+        id: doc.id,
+        name: data.title || data.name || "Category",
+        iconName: data.icon || "Sparkles",
+        offersCount: data.offersCount || 0,
+        subcategories: Array.isArray(data.subcategories) ? data.subcategories : []
+      });
+    });
+  } catch (e) {
+    console.warn("Firestore categories fetch notice:", e);
+  }
+  return categories.length > 0 ? categories : getCategories();
+};
+
+export const getBannersFromFirebase = async (): Promise<AppBanner[]> => {
+  let banners: AppBanner[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "banners"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.isActive !== false) {
+        banners.push({
+          id: doc.id,
+          imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=800",
+          title: data.title || "Special Offer",
+          subtitle: data.subtitle || "Exclusive deals for you",
+          targetOfferId: data.targetOfferId,
+          externalUrl: data.externalUrl,
+          isActive: data.isActive ?? true,
+          targetScreen: data.targetScreen,
+          categoryId: data.categoryId,
+          categoryName: data.categoryName
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Firestore banners fetch notice:", e);
+  }
+  return banners;
+};
+
+export const getPromoBannersFromFirebase = async (): Promise<PromoBanner[]> => {
+  let banners: PromoBanner[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "promo_banners"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.isActive !== false) {
+        banners.push({
+          id: doc.id,
+          imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800",
+          targetOfferId: data.targetOfferId,
+          externalUrl: data.externalUrl,
+          isActive: data.isActive ?? true,
+          targetScreen: data.targetScreen,
+          categoryId: data.categoryId,
+          categoryName: data.categoryName
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Firestore promo banners fetch notice:", e);
+  }
+  return banners;
+};
+
+export const getCategoryBannersFromFirebase = async (
+  categoryId?: string,
+  categoryName?: string
+): Promise<AppBanner[]> => {
+  let banners: AppBanner[] = [];
+  const catKey = (categoryId || categoryName || "").toLowerCase().trim();
+
+  try {
+    const bannersSnap = await getDocs(collection(db, "banners"));
+    bannersSnap.forEach((doc) => {
+      const data = doc.data();
+      if (data.isActive !== false) {
+        const bCatId = (data.categoryId || "").toLowerCase().trim();
+        const bCatName = (data.categoryName || "").toLowerCase().trim();
+        const isCatTarget = data.targetScreen === "category" || Boolean(bCatId) || Boolean(bCatName);
+
+        if (isCatTarget) {
+          if (!catKey || catKey === "all" || bCatId === catKey || bCatName === catKey || bCatId.includes(catKey) || catKey.includes(bCatId)) {
+            banners.push({
+              id: doc.id,
+              imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+              title: data.title || "Category Deal",
+              subtitle: data.subtitle || "Limited Time Offer",
+              targetOfferId: data.targetOfferId || "",
+              externalUrl: data.externalUrl,
+              isActive: true,
+              targetScreen: "category",
+              categoryId: data.categoryId,
+              categoryName: data.categoryName
+            });
+          }
+        }
+      }
+    });
+
+    const campaignsSnap = await getDocs(collection(db, "campaigns"));
+    campaignsSnap.forEach((doc) => {
+      const data = doc.data();
+      const isPaid = (data.paymentStatus || "").toLowerCase() === "paid";
+      const status = (data.status || "").toLowerCase();
+      const isActive = status === "active" || status === "approved";
+      const adType = (data.adType || "").toLowerCase();
+      const targetScreen = (data.targetScreen || "").toLowerCase();
+
+      if (isPaid && isActive && (adType.includes("category") || targetScreen === "category")) {
+        const cCatId = (data.categoryId || "").toLowerCase().trim();
+        if (!catKey || catKey === "all" || cCatId === catKey || cCatId.includes(catKey) || catKey.includes(cCatId)) {
+          banners.push({
+            id: `camp_${doc.id}`,
+            imageUrl: data.adImageUrl || data.imageUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+            title: data.businessName || data.title || "Featured Category Ad",
+            subtitle: data.notes || data.subtitle || "Special Promotion",
+            targetOfferId: data.targetOfferId || "",
+            isActive: true,
+            targetScreen: "category",
+            categoryId: data.categoryId
+          });
+        }
+      }
+    });
+  } catch (e) {
+    console.warn("Firestore category banners fetch notice:", e);
+  }
+
+  // Curated category banners fallback if no live category banners in Firestore for this category
+  if (banners.length === 0) {
+    if (catKey.includes("accommodat") || catKey.includes("hotel") || catKey.includes("stay") || catKey.includes("resort")) {
+      banners = [
+        {
+          id: "banner-acc-1",
+          imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&auto=format&fit=crop&q=80",
+          title: "Luxury Heritage Villas & Stays",
+          subtitle: "MEGA DEALS • Exclusive 30% Off on Weekends",
+          isActive: true,
+          targetScreen: "category",
+          categoryId: "accommodation"
+        },
+        {
+          id: "banner-acc-2",
+          imageUrl: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200&auto=format&fit=crop&q=80",
+          title: "Beachside Boutique Resorts",
+          subtitle: "PROMO DEAL • Flat 25% Instant Discount",
+          isActive: true,
+          targetScreen: "category",
+          categoryId: "accommodation"
+        }
+      ];
+    } else if (catKey.includes("food") || catKey.includes("dine") || catKey.includes("cafe") || catKey.includes("restaurant")) {
+      banners = [
+        {
+          id: "banner-food-1",
+          imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&auto=format&fit=crop&q=80",
+          title: "Pondicherry Gourmet Feast",
+          subtitle: "FOODIE SPECIAL • Flat 30% OFF on Dining",
+          isActive: true,
+          targetScreen: "category",
+          categoryId: "food"
+        },
+        {
+          id: "banner-food-2",
+          imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&auto=format&fit=crop&q=80",
+          title: "French Cafe & Bakery Combos",
+          subtitle: "BUY 1 GET 1 • Fresh Morning Breads",
+          isActive: true,
+          targetScreen: "category",
+          categoryId: "food"
+        }
+      ];
+    } else {
+      banners = [
+        {
+          id: "banner-gen-1",
+          imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&auto=format&fit=crop&q=80",
+          title: "Exclusive Verified Deals",
+          subtitle: "SPECIAL OFFER • Save Big in Pondicherry",
+          isActive: true,
+          targetScreen: "category"
+        },
+        {
+          id: "banner-gen-2",
+          imageUrl: "https://images.unsplash.com/photo-1526178613552-2b45c6c302f0?w=1200&auto=format&fit=crop&q=80",
+          title: "Top Rated Outlets",
+          subtitle: "EXPLORE DEALS • Up to 50% OFF",
+          isActive: true,
+          targetScreen: "category"
+        }
+      ];
+    }
+  }
+
+  return banners;
+};
+
+export const getHotspotsFromFirebase = async (): Promise<Hotspot[]> => {
+  let hotspots: Hotspot[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "hotspots"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.isActive !== false) {
+        hotspots.push({
+          id: doc.id,
+          imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=200",
+          title: data.title || data.name || "Hotspot",
+          targetOfferId: data.targetOfferId,
+          externalUrl: data.externalUrl,
+          isActive: data.isActive ?? true
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Firestore hotspots fetch notice:", e);
+  }
+  return hotspots;
+};
+
+export const getBrandsFromFirebase = async (): Promise<Brand[]> => {
+  let brands: Brand[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "brands"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      brands.push({
+        id: doc.id,
+        name: data.name || "Brand",
+        imageUrl: data.imageUrl || "",
+        categoryId: data.categoryId,
+        businessIds: Array.isArray(data.businessIds) ? data.businessIds : []
+      });
+    });
+  } catch (e) {
+    console.warn("Firestore brands fetch notice:", e);
+  }
+  return brands;
+};
+
+export interface ConvenienceFeeConfig {
+  feeType: "percentage" | "fixed";
+  feeValue: number;
+  disabledCategories: string[];
+}
+
+export const DEFAULT_CONVENIENCE_FEE_CONFIG: ConvenienceFeeConfig = {
+  feeType: "percentage",
+  feeValue: 5.0,
+  disabledCategories: []
+};
+
+export function calculateConvenienceFee(amount: number, category?: string, config: ConvenienceFeeConfig = DEFAULT_CONVENIENCE_FEE_CONFIG): number {
+  if (amount <= 0) return 0;
+  
+  if (category && config.disabledCategories) {
+    const catLower = category.toLowerCase().trim();
+    if (config.disabledCategories.some(c => c.toLowerCase().trim() === catLower)) {
+      return 0;
+    }
+  }
+
+  if (config.feeType === "fixed") {
+    return Math.min(config.feeValue, amount);
+  }
+  return Math.round(amount * (config.feeValue / 100.0));
+}
+
+export interface VoucherValidationResult {
+  isValid: boolean;
+  message: string;
+  discountAmount?: number;
+  discountPercentage?: number;
+}
+
+export function validateVoucherCode(code: string, subtotal: number, availableVouchers: any[] = []): VoucherValidationResult {
+  if (!code || code.trim() === "") {
+    return { isValid: false, message: "Please enter a voucher code" };
+  }
+
+  const normalized = code.trim().toUpperCase();
+
+  // Check known static/mock vouchers or pass-through valid formats
+  const staticVouchers: Record<string, { type: "percent" | "fixed"; val: number }> = {
+    "WELCOME50": { type: "percent", val: 50 },
+    "OUIYA10": { type: "percent", val: 10 },
+    "SAVE20": { type: "percent", val: 20 },
+    "PIZZAHUT34": { type: "percent", val: 34 },
+    "BURGER34": { type: "percent", val: 34 },
+    "MCDVALUE30": { type: "percent", val: 30 },
+    "FLAT100": { type: "fixed", val: 100 }
+  };
+
+  if (staticVouchers[normalized]) {
+    const v = staticVouchers[normalized];
+    const discountAmount = v.type === "percent" ? Math.round(subtotal * (v.val / 100)) : v.val;
+    return {
+      isValid: true,
+      message: `Voucher ${normalized} applied! Saved ₹${discountAmount}`,
+      discountAmount,
+      discountPercentage: v.type === "percent" ? v.val : undefined
+    };
+  }
+
+  // Dynamic code validation fallback
+  if (normalized.length >= 4) {
+    const discountAmount = Math.min(Math.round(subtotal * 0.1), 150);
+    return {
+      isValid: true,
+      message: `Voucher ${normalized} applied successfully!`,
+      discountAmount
+    };
+  }
+
+  return { isValid: false, message: "Invalid or expired voucher code" };
+}
+
+export function matchesSubCategory(
+  offer: Offer,
+  selectedSubCategory: string
+): boolean {
+  if (!selectedSubCategory || selectedSubCategory.toLowerCase() === "all") return true;
+
+  const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const subIdClean = clean(selectedSubCategory);
+  const subIdLower = selectedSubCategory.toLowerCase().trim();
+
+  // Extract keywords (3+ letters, non-stop words)
+  const keywords = new Set<string>();
+  selectedSubCategory.toLowerCase().split(/[\s_&/,\-\(\)]+/).forEach((p) => {
+    const k = p.trim();
+    if (k.length >= 3 && !["and", "the", "for", "with", "all"].includes(k)) {
+      keywords.add(k);
+    }
+  });
+
+  const oSub = (offer.subcategory || (offer as any).subCategory || "").trim();
+  const oSubLower = oSub.toLowerCase();
+  const oSubClean = clean(oSub);
+
+  // 1. PRIMARY: Match offer.subcategory
+  if (oSubClean) {
+    // Exact or normalized match
+    if (oSubLower === subIdLower || oSubClean === subIdClean) {
+      return true;
+    }
+
+    // Substring containment
+    if (
+      oSubLower.includes(subIdLower) ||
+      subIdLower.includes(oSubLower) ||
+      oSubClean.includes(subIdClean) ||
+      subIdClean.includes(oSubClean)
+    ) {
+      return true;
+    }
+
+    // Keyword match on offer.subcategory
+    for (const kw of keywords) {
+      if (oSubLower.includes(kw) || kw.includes(oSubLower)) {
+        return true;
+      }
+    }
+  }
+
+  // 2. SECONDARY: Match offer.title or offer.description
+  const titleLower = (offer.title || "").toLowerCase();
+  const descLower = (offer.description || "").toLowerCase();
+  const titleClean = clean(offer.title || "");
+
+  if (
+    (subIdClean && titleClean.includes(subIdClean)) ||
+    (subIdLower && titleLower.includes(subIdLower))
+  ) {
+    return true;
+  }
+
+  for (const kw of keywords) {
+    if (titleLower.includes(kw) || descLower.includes(kw)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+
 

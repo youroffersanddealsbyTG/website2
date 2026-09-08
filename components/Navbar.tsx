@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Tag, ShoppingCart, User as UserIcon, LogOut, LogIn, MapPin, ChevronDown, Bell, X } from "lucide-react";
 import { useApp } from "../lib/AppContext";
+import ThemeToggle from "./ThemeToggle";
 
 export default function Navbar() {
   const { 
@@ -17,7 +18,8 @@ export default function Navbar() {
     logout,
     openAuthModal,
     location,
-    setLocation
+    setLocation,
+    openLocationModal
   } = useApp();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -44,11 +46,11 @@ export default function Navbar() {
           : "bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-900"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 md:h-20">
-          <div className="flex items-center">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16 md:h-20 items-center">
+          <div className="flex items-center min-w-0">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group" onClick={() => setTab("home")}>
+            <Link href="/" className="flex items-center gap-2 group shrink-0" onClick={() => setTab("home")}>
               <div className="bg-primary text-white p-2 rounded-xl shadow-lg shadow-primary/30 group-hover:scale-105 transition-transform duration-300">
                 <Tag className="w-5 h-5 md:w-6 md:h-6 rotate-90" />
               </div>
@@ -57,61 +59,26 @@ export default function Navbar() {
               </span>
             </Link>
 
-            {/* Location Selector (Wireframe Image 1: White Town, Pondicherry / Coming Soon) */}
-            <div className="relative ml-4 sm:ml-6 hidden sm:block">
+            {/* Location Selector */}
+            <div className="relative ml-2 sm:ml-3 lg:ml-6 hidden sm:block shrink-0">
               <button
-                onClick={() => setShowLocationDropdown(!showLocationDropdown)}
-                className="flex items-center gap-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-red-100 dark:hover:bg-red-900/60 cursor-pointer"
+                onClick={openLocationModal}
+                className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:bg-primary/20 cursor-pointer"
               >
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <div className="text-left leading-tight">
-                  <span className="block font-black text-[11px]">{selectedLoc}</span>
-                  <span className="block text-[9px] opacity-75 font-medium">Near Mahatma Gandhi Statue</span>
+                  <span className="block font-black text-[10px] sm:text-[11px] truncate max-w-[85px] md:max-w-[100px] lg:max-w-none">{location}</span>
+                  <span className="hidden xl:block text-[9px] opacity-75 font-medium">Near Mahatma Gandhi Statue</span>
                 </div>
-                <ChevronDown className="w-3 h-3 ml-0.5" />
+                <ChevronDown className="w-3 h-3 ml-0.5 shrink-0" />
               </button>
-
-              {/* Location Dropdown */}
-              {showLocationDropdown && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl z-50 p-2 text-xs">
-                  <div className="p-2 border-b border-zinc-100 dark:border-zinc-800 font-black text-zinc-500 uppercase text-[10px]">
-                    Select City / Region
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setSelectedLoc("White Town, Pondicherry");
-                      setShowLocationDropdown(false);
-                      setComingSoonCity(null);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-bold text-zinc-900 dark:text-white hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400"
-                  >
-                    <span>White Town, Pondicherry</span>
-                    <span className="text-[9px] bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300 font-extrabold px-2 py-0.5 rounded-full">ACTIVE</span>
-                  </button>
-
-                  {["Chennai, Tamil Nadu", "Bengaluru, Karnataka", "Hyderabad, Telangana", "Mumbai, Maharashtra"].map((city) => (
-                    <button
-                      key={city}
-                      onClick={() => {
-                        setComingSoonCity(city);
-                        setShowLocationDropdown(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-xl flex items-center justify-between font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    >
-                      <span>{city}</span>
-                      <span className="text-[9px] bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 font-bold px-2 py-0.5 rounded-full">Coming Soon</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden lg:ml-6 lg:flex lg:space-x-1">
+            {/* Navigation Links */}
+            <div className="hidden md:flex md:ml-3 lg:ml-6 items-center space-x-1 shrink-0">
               <button
                 onClick={() => { setTab("home"); router.push("/"); }}
-                className={`inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center px-2.5 lg:px-3.5 py-1.5 md:py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeTab === "home" && pathname === "/"
                     ? "bg-primary/10 text-primary font-black"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
@@ -121,7 +88,7 @@ export default function Navbar() {
               </button>
               <button
                 onClick={() => { setTab("categories"); router.push("/"); }}
-                className={`inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center px-2.5 lg:px-3.5 py-1.5 md:py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeTab === "categories" && pathname === "/"
                     ? "bg-primary/10 text-primary font-black"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
@@ -131,27 +98,29 @@ export default function Navbar() {
               </button>
               <button
                 onClick={() => { setTab("discover"); router.push("/"); }}
-                className={`inline-flex items-center px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                className={`inline-flex items-center px-2.5 lg:px-3.5 py-1.5 md:py-2 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   activeTab === "discover"
                     ? "bg-primary/10 text-primary font-black"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900"
                 }`}
               >
-                Discover Pondicherry
+                <span>Discover Pondicherry</span>
               </button>
             </div>
           </div>
 
-          {/* Right Side Options (Auth buttons, Cart Icon & Navigation Drawer) */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Side Options */}
+          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0">
+            {/* Theme Toggle Button */}
+            <ThemeToggle />
 
             {/* Cart Icon */}
             <button
               onClick={() => { setTab("cart"); router.push("/"); }}
-              className="relative p-2.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:scale-105 transition-all duration-200 cursor-pointer focus:outline-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full"
+              className="relative p-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:scale-105 transition-all duration-200 cursor-pointer focus:outline-none bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full hidden md:flex"
               title="View Cart"
             >
-              <ShoppingCart className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
+              <ShoppingCart className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               {cart.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-[9px] font-black rounded-full h-4.5 w-4.5 flex items-center justify-center border-2 border-white dark:border-zinc-950 animate-pulse">
                   {cart.length}
@@ -161,7 +130,7 @@ export default function Navbar() {
 
             {/* Authentication Controls */}
             {user ? (
-              <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 rounded-full p-1 pl-3 shadow-sm">
+              <div className="flex items-center gap-1.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 rounded-full p-1 pl-1 lg:pl-2.5 shadow-sm">
                 {user.photoURL ? (
                   <img 
                     src={user.photoURL} 
@@ -174,16 +143,16 @@ export default function Navbar() {
                   </div>
                 )}
 
-                <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 max-w-[90px] sm:max-w-[120px] truncate hidden sm:inline">
+                <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 max-w-[100px] truncate hidden lg:inline">
                   {user.displayName || user.email?.split("@")[0] || "Account"}
                 </span>
 
                 <button
                   onClick={logout}
-                  className="p-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-red-500 transition-colors cursor-pointer"
+                  className="p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-red-500 transition-colors cursor-pointer hidden lg:inline-flex"
                   title="Sign Out"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (

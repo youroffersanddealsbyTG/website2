@@ -16,12 +16,13 @@ export default function CouponSuccessModal() {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const orderId = `#ORD${Math.floor(10000000 + Math.random() * 90000000)}`;
+  const cleanCode = couponCode.replace(/[^A-Z0-9]/gi, "");
+  const orderId = `#ORD${cleanCode.length >= 8 ? cleanCode.substring(0, 8).toUpperCase() : cleanCode.padEnd(8, "0").toUpperCase()}`;
   const orderDate = new Date().toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric"
-  }) + ", 09:41 AM";
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 select-none">

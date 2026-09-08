@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useApp } from "../../lib/AppContext";
-import { getOffers, getBusinesses, getBusinessesFromFirebase, getCategories, Offer, Business } from "../../lib/db";
+import { getOffers, getBusinessesFromFirebase, getCategoriesFromFirebase, Offer, Business, Category, matchesSubCategory } from "../../lib/db";
+import CategoryBannerCarousel from "../../components/CategoryBannerCarousel";
 import { 
   ArrowLeft, Search, Star, Heart, MapPin, 
   Sparkles, Flame, Percent, ChevronRight, Filter, Tag, ArrowUpRight
@@ -10,6 +11,8 @@ import {
 
 // Sub-categories mapping for Wireframe Image 2 compliance
 const SUB_CATEGORIES: Record<string, string[]> = {
+  "Accommodation": ["All", "Hotels", "Resorts", "Homestays", "Lodges", "Guest Houses", "Villas"],
+  "accommodation": ["All", "Hotels", "Resorts", "Homestays", "Lodges", "Guest Houses", "Villas"],
   "Electronics": ["All", "Mobiles", "Audio", "TV & Video", "Accessories"],
   "Mobiles": ["All", "Smartphones", "Feature Phones", "Accessories", "Tablets"],
   "Audio": ["All", "Headphones", "Earbuds", "Speakers", "Soundbars"],
@@ -52,7 +55,12 @@ export default function CategoryBrowseView() {
 
   const [offers, setOffers] = useState<Offer[]>([]);
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [activeSubCategory, setActiveSubCategory] = useState<string>("All");
+
+  useEffect(() => {
+    getCategoriesFromFirebase().then(setCategoriesList);
+  }, []);
 
   useEffect(() => {
     setActiveSubCategory("All");
@@ -86,8 +94,21 @@ export default function CategoryBrowseView() {
   };
 
   const subCategoriesList = useMemo(() => {
+    if (!selectedCategory || selectedCategory === "All") return ["All", "Top Rated", "New Arrivals", "Best Discount"];
+    const catKey = selectedCategory.toLowerCase().trim();
+    
+    const activeCatDoc = categoriesList.find(c => {
+      const name = (c.name || "").toLowerCase().trim();
+      const id = (c.id || "").toLowerCase().trim();
+      return name === catKey || id === catKey || catKey.includes(name) || name.includes(catKey);
+    });
+
+    if (activeCatDoc && activeCatDoc.subcategories && activeCatDoc.subcategories.length > 0) {
+      return ["All", ...activeCatDoc.subcategories];
+    }
+
     return SUB_CATEGORIES[selectedCategory] || ["All", "Top Rated", "New Arrivals", "Best Discount"];
-  }, [selectedCategory]);
+  }, [selectedCategory, categoriesList]);
 
   const categoryBanner = useMemo(() => {
     return CATEGORY_BANNERS[selectedCategory] || {
@@ -101,11 +122,7 @@ export default function CategoryBrowseView() {
   // Filtered offers by sub-category tab
   const filteredOffers = useMemo(() => {
     if (activeSubCategory === "All") return offers;
-    return offers.filter(o => 
-      o.title.toLowerCase().includes(activeSubCategory.toLowerCase()) ||
-      o.description?.toLowerCase().includes(activeSubCategory.toLowerCase()) ||
-      o.businessName.toLowerCase().includes(activeSubCategory.toLowerCase())
-    );
+    return offers.filter((o) => matchesSubCategory(o, activeSubCategory));
   }, [offers, activeSubCategory]);
 
   return (
@@ -132,26 +149,36 @@ export default function CategoryBrowseView() {
 
         {/* Main Category Quick Selector Bar */}
         <div className="hidden md:flex items-center gap-2 overflow-x-auto no-scrollbar">
-          {["All", "Electronics", "Mobiles", "Audio", "Food & Dining", "Fashion", "Beauty"].map(catName => (
+          <button
+            onClick={() => setSelectedCategory("All")}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              selectedCategory === "All" 
+                ? "bg-red-600 text-white shadow-md" 
+                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200"
+            }`}
+          >
+            All
+          </button>
+          {categoriesList.map(cat => (
             <button
-              key={catName}
-              onClick={() => setSelectedCategory(catName)}
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.name)}
               className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                selectedCategory === catName 
+                selectedCategory === cat.name 
                   ? "bg-red-600 text-white shadow-md" 
                   : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200"
               }`}
             >
-              {catName}
+              {cat.name}
             </button>
           ))}
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
 
-        {/* 2. Sub-Category Scrollable Pills Row (Wireframe Image 2 Requirement) */}
+        {/* 2. Sub-Category Scrollable Pills Row */}
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-3 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
           <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0 px-2 flex items-center gap-1">
             <Filter className="w-3 h-3 text-red-500" />
@@ -172,29 +199,11 @@ export default function CategoryBrowseView() {
           ))}
         </div>
 
-        {/* 3. Category Promotional Hero Banner (Wireframe Image 2 Requirement) */}
-        <div className={`relative rounded-3xl overflow-hidden shadow-xl bg-gradient-to-r ${categoryBanner.bg} text-white p-6 sm:p-8 flex justify-between items-center border border-white/10`}>
-          <div className="space-y-2 max-w-xl z-10">
-            <span className="bg-red-500 text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-widest shadow-sm inline-block">
-              {categoryBanner.discount}
-            </span>
-            <h3 className="text-2xl sm:text-3xl font-black leading-tight drop-shadow-md">
-              {categoryBanner.title}
-            </h3>
-            <p className="text-xs sm:text-sm text-zinc-200 font-medium drop-shadow-sm">
-              {categoryBanner.subtitle}
-            </p>
-          </div>
-          <div className="hidden sm:block text-right shrink-0 z-10">
-            <button
-              onClick={() => setActiveSubCategory("All")}
-              className="bg-white text-zinc-900 font-black text-xs px-6 py-3 rounded-full shadow-xl hover:bg-zinc-100 transition-all active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
-            >
-              <span>Shop All Offers</span>
-              <ChevronRight className="w-4 h-4 text-red-600" />
-            </button>
-          </div>
-        </div>
+        {/* 3. Category Promotional Hero Banner Slideshow (Category Banners Carousel) */}
+        <CategoryBannerCarousel
+          categoryId={selectedCategory}
+          categoryName={selectedCategory}
+        />
 
         {/* 4. Filtered Deal Offers (Wireframe Image 2 Grid & Cards) */}
         <section className="space-y-4 pt-2">
@@ -208,7 +217,7 @@ export default function CategoryBrowseView() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {filteredOffers.map((offer) => {
               const isLiked = likedOffers[offer.id];
               return (

@@ -406,25 +406,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         existingPurchases = [];
       }
       
+      const timestampStr = Date.now().toString(36).toUpperCase();
       const newPurchases = cart.map((item, idx) => ({
         id: `purch-${Date.now()}-${idx}`,
         businessName: item.offer.businessName,
         title: item.offer.title,
         discount: item.offer.discount,
-        code: item.offer.code || `OUIYA${Math.floor(1000 + Math.random() * 9000)}`,
+        code: item.offer.code || `OUIYA-${item.offer.id.substring(0, 6).toUpperCase()}`,
         validTill: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-GB", {
           day: "numeric",
           month: "short",
           year: "numeric"
         }),
-        qrText: `OUIYA-${item.offer.code || "DEAL"}-${Date.now()}`
+        qrText: `OUIYA-${item.offer.code || "DEAL"}-${timestampStr}`
       }));
 
       localStorage.setItem("ouiya_purchased_coupons", JSON.stringify([...newPurchases, ...existingPurchases]));
     }
 
-    const randomCode = "OUIYA-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-    setCouponCode(randomCode);
+    const orderCouponCode = "OUIYA-" + Date.now().toString(36).toUpperCase();
+    setCouponCode(orderCouponCode);
     
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + 7);

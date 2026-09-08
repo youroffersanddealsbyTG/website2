@@ -6,7 +6,7 @@ import { getBusinessesFromFirebase, getOffers, Business, Offer } from "../lib/db
 import { 
   X, ArrowLeft, Home, User, Heart, ShoppingCart, Ticket, 
   Tv, Users, Settings, Sun, ChevronRight, HelpCircle, 
-  LogOut, Shield, Gift, Copy, Check, Award, Store, Tag, Trash2
+  LogOut, Shield, Gift, Copy, Check, Award, Store, Tag, Trash2, Compass
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -23,7 +23,10 @@ export default function SideDrawer() {
     toggleShopLike,
     likedOffers,
     toggleOfferLike,
-    openShopDetails
+    openShopDetails,
+    user,
+    logout,
+    openAuthModal
   } = useApp();
 
   const router = useRouter();
@@ -37,9 +40,11 @@ export default function SideDrawer() {
   const [isDragging, setIsDragging] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Customer auth state
-  const [customerName, setCustomerName] = useState("Karthik");
-  const [customerAvatar, setCustomerAvatar] = useState("https://img.freepik.com/premium-vector/vector-3d-character-avatar-design_1170063-2287.jpg?w=200");
+  // Real user state from Firebase Auth
+  const customerName = user 
+    ? (user.displayName || user.email?.split("@")[0] || "User") 
+    : "Guest User";
+  const customerAvatar = user?.photoURL || "";
   const [offersList, setOffersList] = useState<Offer[]>([]);
   const [businessesList, setBusinessesList] = useState<Business[]>([]);
   const [purchases, setPurchases] = useState<{
@@ -54,13 +59,6 @@ export default function SideDrawer() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedName = localStorage.getItem("ouiya_customer_name") || "Karthik";
-      const storedAvatar = localStorage.getItem("ouiya_customer_avatar") || "https://img.freepik.com/premium-vector/vector-3d-character-avatar-design_1170063-2287.jpg?w=200";
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCustomerName(storedName);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCustomerAvatar(storedAvatar);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvatarError(false);
 
       getOffers().then(setOffersList).catch(() => {});
@@ -70,10 +68,8 @@ export default function SideDrawer() {
         const stored = localStorage.getItem("ouiya_purchased_coupons");
         if (stored) {
           try {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPurchases(JSON.parse(stored));
           } catch {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPurchases([]);
           }
         } else {
@@ -105,22 +101,13 @@ export default function SideDrawer() {
     }
   }, [isDrawerOpen]);
 
-  const handleLogout = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("ouiya_customer_name", "Guest User");
-      localStorage.setItem("ouiya_customer_avatar", "");
-      setCustomerName("Guest User");
-      setCustomerAvatar("");
-    }
+  const handleLogout = async () => {
+    await logout();
   };
 
   const handleLogin = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("ouiya_customer_name", "Karthik");
-      localStorage.setItem("ouiya_customer_avatar", "https://img.freepik.com/premium-vector/vector-3d-character-avatar-design_1170063-2287.jpg?w=200");
-      setCustomerName("Karthik");
-      setCustomerAvatar("https://img.freepik.com/premium-vector/vector-3d-character-avatar-design_1170063-2287.jpg?w=200");
-    }
+    toggleDrawer();
+    openAuthModal();
   };
 
   const buySubscription = (planName: string, price: number, logoUrl: string) => {
@@ -301,6 +288,22 @@ export default function SideDrawer() {
               >
                 <Home className="w-5 h-5 text-primary" />
                 <span>Home</span>
+              </button>
+
+              <button
+                onClick={() => { setTab("categories"); toggleDrawer(); router.push("/"); }}
+                className="flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors font-bold text-sm cursor-pointer"
+              >
+                <Tag className="w-5 h-5 text-primary" />
+                <span>Offers</span>
+              </button>
+
+              <button
+                onClick={() => { setTab("discover"); toggleDrawer(); router.push("/"); }}
+                className="flex items-center gap-4 w-full px-4 py-3.5 rounded-2xl text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors font-bold text-sm cursor-pointer"
+              >
+                <Compass className="w-5 h-5 text-primary" />
+                <span>Discover Pondicherry</span>
               </button>
 
               <button

@@ -1,3 +1,6 @@
+import { db } from "./firebase";
+import { collection, getDocs } from "@firebase/firestore";
+
 export interface DestinationActivity {
   id: string;
   name: string;
@@ -531,3 +534,58 @@ export const DESTINATION_CATEGORIES = [
   "Gardens",
   "Boat Rides"
 ];
+
+export const getDestinationsFromFirebase = async (): Promise<TouristDestination[]> => {
+  let destinations: TouristDestination[] = [];
+  try {
+    const querySnapshot = await getDocs(collection(db, "tourist_destinations"));
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const cover = data.coverImage || (Array.isArray(data.coverImages) && data.coverImages[0]) || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800";
+      destinations.push({
+        id: doc.id,
+        name: data.name || "Tourist Attraction",
+        tagline: data.tagline || data.about || "Explore Pondicherry",
+        category: data.category || "Beaches",
+        coverImage: cover,
+        gallery: Array.isArray(data.coverImages) && data.coverImages.length > 0 ? data.coverImages : [cover],
+        rating: typeof data.rating === 'number' ? data.rating : parseFloat(data.rating) || 4.5,
+        reviewsCount: data.reviewCount ? `${data.reviewCount} reviews` : (data.reviewsCount || "500 reviews"),
+        distance: data.distance || "1.0 km from city center",
+        openHours: data.openHours || "9:00 AM - 5:00 PM",
+        entryFee: data.entryFee || "Free Entry",
+        estimatedDuration: data.estVisitDuration || data.estimatedDuration || "2 Hours",
+        history: data.history || "Historical attraction in Pondicherry.",
+        importance: data.importance || data.about || "Must visit spot.",
+        facts: Array.isArray(data.facts) ? data.facts : ["Beautiful coastal attraction."],
+        experience: data.experience || data.about || "Great tourist experience.",
+        bestTimeToVisit: typeof data.bestTime === 'object' && data.bestTime !== null ? data.bestTime : {
+          morning: true,
+          evening: true,
+          sunrise: false,
+          sunset: true,
+          recommendedSeason: "Year-Round"
+        },
+        facilities: Array.isArray(data.facilities) ? data.facilities : ["Parking", "Restrooms"],
+        googleMapsUrl: data.googleMapsUrl || `https://maps.google.com/?q=${encodeURIComponent(data.name || "Pondicherry")}`,
+        travelTime: data.travelTime || "15 mins",
+        lat: typeof data.lat === 'number' ? data.lat : 11.9333,
+        lng: typeof data.lng === 'number' ? data.lng : 79.8354,
+        activities: Array.isArray(data.activities) ? data.activities : (Array.isArray(data.mustTryActivities) ? data.mustTryActivities.map((act: any, idx: number) => ({
+          id: `act-${doc.id}-${idx}`,
+          name: typeof act === 'string' ? act : (act.name || "Attraction Activity"),
+          categoryFilter: "Entertainment",
+          iconName: "Compass",
+          description: typeof act === 'string' ? act : (act.description || "Activity at destination"),
+          startingPrice: "Free"
+        })) : []),
+        nearbyCategories: Array.isArray(data.nearbyCategories) ? data.nearbyCategories : ["Dining", "Entertainment"]
+      });
+    });
+  } catch (e) {
+    console.warn("Firestore destinations fetch notice:", e);
+  }
+
+  return destinations.length > 0 ? destinations : PONDICHERRY_DESTINATIONS;
+};
+
