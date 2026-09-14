@@ -3,13 +3,13 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Offer, Business, getBusinesses } from "./db";
 import { TouristDestination, DestinationActivity } from "./discoverData";
+import type { User } from "@firebase/auth";
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signOut, 
-  User 
+  signOut
 } from "@firebase/auth";
 import { auth, googleProvider } from "./firebase";
 
@@ -119,7 +119,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [pendingActionOffer, setPendingActionOffer] = useState<Offer | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser: any) => {
       setUser(currentUser);
       setAuthLoading(false);
     });

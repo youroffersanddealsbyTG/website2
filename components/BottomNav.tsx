@@ -9,12 +9,12 @@ export default function BottomNav() {
 
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const tabs = [
+  const tabs: { id: "home" | "categories" | "discover" | "cart"; label: string; icon: any; badge?: number }[] = [
     { id: "home", label: "HOME", icon: Home },
     { id: "categories", label: "OFFERS", icon: Grid },
     { id: "discover", label: "DISCOVER", icon: Compass },
     { id: "cart", label: "CART", icon: ShoppingCart, badge: totalItems }
-  ] as const;
+  ];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 p-3 md:p-6 flex justify-center pointer-events-none select-none md:hidden">

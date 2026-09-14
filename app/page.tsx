@@ -43,6 +43,10 @@ import {
 
 // Helper to render lucide icon dynamically based on name or category title
 const IconRenderer = ({ name, categoryTitle, className }: { name?: string; categoryTitle?: string; className?: string }) => {
+  if (name && (name.startsWith("http://") || name.startsWith("https://"))) {
+    return <img src={name} alt={categoryTitle || "Category"} className={`${className || "w-6 h-6"} object-contain`} />;
+  }
+
   const titleLower = (categoryTitle || "").toLowerCase();
   const nameLower = (name || "").toLowerCase();
 
@@ -538,7 +542,7 @@ export default function AppHome() {
                             {offer.originalPrice && <span className="text-xs text-zinc-400 line-through">₹{offer.originalPrice}</span>}
                           </div>
                           <span className="text-[9px] text-emerald-600 font-bold block">
-                            Save ₹{(offer.originalPrice || Math.round(offer.ouiyaPrice * 1.3)) - offer.ouiyaPrice}
+                            Save ₹{(offer.originalPrice || Math.round((offer.ouiyaPrice ?? 499) * 1.3)) - (offer.ouiyaPrice ?? 499)}
                           </span>
                         </div>
                         <button

@@ -9,8 +9,9 @@ export default function OfferDetailModal() {
 
   if (!selectedOffer) return null;
 
-  const originalPrice = selectedOffer.originalPrice || Math.round(selectedOffer.ouiyaPrice * 1.4);
-  const youSaveAmount = originalPrice - selectedOffer.ouiyaPrice;
+  const ouiyaPrice = selectedOffer.ouiyaPrice ?? 499;
+  const originalPrice = selectedOffer.originalPrice || Math.round(ouiyaPrice * 1.4);
+  const youSaveAmount = originalPrice - ouiyaPrice;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 select-none">

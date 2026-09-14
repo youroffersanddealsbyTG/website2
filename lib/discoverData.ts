@@ -539,7 +539,7 @@ export const getDestinationsFromFirebase = async (): Promise<TouristDestination[
   let destinations: TouristDestination[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "tourist_destinations"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       const cover = data.coverImage || (Array.isArray(data.coverImages) && data.coverImages[0]) || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800";
       destinations.push({
@@ -582,8 +582,8 @@ export const getDestinationsFromFirebase = async (): Promise<TouristDestination[
         nearbyCategories: Array.isArray(data.nearbyCategories) ? data.nearbyCategories : ["Dining", "Entertainment"]
       });
     });
-  } catch (e) {
-    console.warn("Firestore destinations fetch notice:", e);
+  } catch {
+    // Graceful fallback to local PONDICHERRY_DESTINATIONS when offline or unauthenticated
   }
 
   return destinations.length > 0 ? destinations : PONDICHERRY_DESTINATIONS;

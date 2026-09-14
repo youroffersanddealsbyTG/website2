@@ -802,7 +802,7 @@ export const getOffers = async (filters?: {
   // Query Cloud Firestore `offers` collection according to schema
   try {
     const querySnapshot = await getDocs(collection(db, "offers"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       firestoreOffers.push(mapFirestoreOffer(doc.id, data));
     });
@@ -868,7 +868,7 @@ export const getBusinessesFromFirebase = async (): Promise<Business[]> => {
   let firestoreBusinesses: Business[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "users"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       if (data.role === "business" || data.businessCategory || data.ownerName) {
         firestoreBusinesses.push(mapFirestoreBusiness(doc.id, data));
@@ -879,7 +879,7 @@ export const getBusinessesFromFirebase = async (): Promise<Business[]> => {
     try {
       const offersSnap = await getDocs(collection(db, "offers"));
       const shopsMap: Record<string, Business> = {};
-      offersSnap.forEach((doc) => {
+      offersSnap.forEach((doc: any) => {
         const data = doc.data();
         const shopId = data.shopId || `biz-${(data.shopName || data.businessName || doc.id).toLowerCase().replace(/\s+/g, "")}`;
         if (!shopsMap[shopId]) {
@@ -915,7 +915,7 @@ export const getReviewsForShop = async (shopId: string): Promise<FirestoreReview
   let reviews: FirestoreReview[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "reviews"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       if (data.shopId === shopId) {
         reviews.push({
@@ -931,8 +931,8 @@ export const getReviewsForShop = async (shopId: string): Promise<FirestoreReview
         });
       }
     });
-  } catch (e) {
-    console.warn("Firestore reviews fetch notice:", e);
+  } catch {
+    // Graceful fallback when offline or unauthenticated
   }
   return reviews;
 };
@@ -942,7 +942,7 @@ export const getCouponsForUser = async (userId: string): Promise<FirestoreCoupon
   let coupons: FirestoreCoupon[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "coupons"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       if (data.userId === userId) {
         coupons.push({
@@ -958,8 +958,8 @@ export const getCouponsForUser = async (userId: string): Promise<FirestoreCoupon
         });
       }
     });
-  } catch (e) {
-    console.warn("Firestore coupons fetch notice:", e);
+  } catch {
+    // Graceful fallback when offline or unauthenticated
   }
   return coupons;
 };
@@ -1016,6 +1016,7 @@ export interface AppBanner {
   title: string;
   subtitle: string;
   targetOfferId?: string;
+  targetShopId?: string;
   externalUrl?: string;
   isActive: boolean;
   targetScreen?: "home" | "category";
@@ -1055,7 +1056,7 @@ export const getCategoriesFromFirebase = async (): Promise<Category[]> => {
   let categories: Category[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "categories"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       categories.push({
         id: doc.id,
@@ -1065,8 +1066,8 @@ export const getCategoriesFromFirebase = async (): Promise<Category[]> => {
         subcategories: Array.isArray(data.subcategories) ? data.subcategories : []
       });
     });
-  } catch (e) {
-    console.warn("Firestore categories fetch notice:", e);
+  } catch {
+    // Graceful fallback to static categories when offline or unauthenticated
   }
   return categories.length > 0 ? categories : getCategories();
 };
@@ -1075,7 +1076,7 @@ export const getBannersFromFirebase = async (): Promise<AppBanner[]> => {
   let banners: AppBanner[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "banners"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       if (data.isActive !== false) {
         banners.push({
@@ -1092,8 +1093,8 @@ export const getBannersFromFirebase = async (): Promise<AppBanner[]> => {
         });
       }
     });
-  } catch (e) {
-    console.warn("Firestore banners fetch notice:", e);
+  } catch {
+    // Graceful fallback when offline or unauthenticated
   }
   return banners;
 };
@@ -1102,7 +1103,7 @@ export const getPromoBannersFromFirebase = async (): Promise<PromoBanner[]> => {
   let banners: PromoBanner[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "promo_banners"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       if (data.isActive !== false) {
         banners.push({
@@ -1117,8 +1118,8 @@ export const getPromoBannersFromFirebase = async (): Promise<PromoBanner[]> => {
         });
       }
     });
-  } catch (e) {
-    console.warn("Firestore promo banners fetch notice:", e);
+  } catch {
+    // Graceful fallback when offline or unauthenticated
   }
   return banners;
 };
@@ -1128,25 +1129,36 @@ export const getCategoryBannersFromFirebase = async (
   categoryName?: string
 ): Promise<AppBanner[]> => {
   let banners: AppBanner[] = [];
-  const catKey = (categoryId || categoryName || "").toLowerCase().trim();
+  const catKey = (categoryId || categoryName || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
 
   try {
     const bannersSnap = await getDocs(collection(db, "banners"));
-    bannersSnap.forEach((doc) => {
+    bannersSnap.forEach((doc: any) => {
       const data = doc.data();
       if (data.isActive !== false) {
-        const bCatId = (data.categoryId || "").toLowerCase().trim();
-        const bCatName = (data.categoryName || "").toLowerCase().trim();
+        const bCatId = (data.categoryId || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+        const bCatName = (data.categoryName || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
         const isCatTarget = data.targetScreen === "category" || Boolean(bCatId) || Boolean(bCatName);
 
         if (isCatTarget) {
-          if (!catKey || catKey === "all" || bCatId === catKey || bCatName === catKey || bCatId.includes(catKey) || catKey.includes(bCatId)) {
+          const isMatch =
+            !catKey ||
+            catKey === "all" ||
+            bCatId === catKey ||
+            bCatName === catKey ||
+            (bCatId && catKey.includes(bCatId)) ||
+            (catKey && bCatId.includes(catKey)) ||
+            (bCatName && catKey.includes(bCatName)) ||
+            (catKey && bCatName.includes(catKey));
+
+          if (isMatch) {
             banners.push({
               id: doc.id,
               imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
               title: data.title || "Category Deal",
-              subtitle: data.subtitle || "Limited Time Offer",
+              subtitle: data.subtitle || "",
               targetOfferId: data.targetOfferId || "",
+              targetShopId: data.targetShopId || "",
               externalUrl: data.externalUrl,
               isActive: true,
               targetScreen: "category",
@@ -1159,7 +1171,7 @@ export const getCategoryBannersFromFirebase = async (
     });
 
     const campaignsSnap = await getDocs(collection(db, "campaigns"));
-    campaignsSnap.forEach((doc) => {
+    campaignsSnap.forEach((doc: any) => {
       const data = doc.data();
       const isPaid = (data.paymentStatus || "").toLowerCase() === "paid";
       const status = (data.status || "").toLowerCase();
@@ -1167,8 +1179,8 @@ export const getCategoryBannersFromFirebase = async (
       const adType = (data.adType || "").toLowerCase();
       const targetScreen = (data.targetScreen || "").toLowerCase();
 
-      if (isPaid && isActive && (adType.includes("category") || targetScreen === "category")) {
-        const cCatId = (data.categoryId || "").toLowerCase().trim();
+      if ((isPaid || isActive) && (adType.includes("category") || targetScreen === "category")) {
+        const cCatId = (data.categoryId || "").toLowerCase().trim().replace(/[^a-z0-9]/g, "");
         if (!catKey || catKey === "all" || cCatId === catKey || cCatId.includes(catKey) || catKey.includes(cCatId)) {
           banners.push({
             id: `camp_${doc.id}`,
@@ -1176,6 +1188,7 @@ export const getCategoryBannersFromFirebase = async (
             title: data.businessName || data.title || "Featured Category Ad",
             subtitle: data.notes || data.subtitle || "Special Promotion",
             targetOfferId: data.targetOfferId || "",
+            targetShopId: data.targetShopId || "",
             isActive: true,
             targetScreen: "category",
             categoryId: data.categoryId
@@ -1183,74 +1196,8 @@ export const getCategoryBannersFromFirebase = async (
         }
       }
     });
-  } catch (e) {
-    console.warn("Firestore category banners fetch notice:", e);
-  }
-
-  // Curated category banners fallback if no live category banners in Firestore for this category
-  if (banners.length === 0) {
-    if (catKey.includes("accommodat") || catKey.includes("hotel") || catKey.includes("stay") || catKey.includes("resort")) {
-      banners = [
-        {
-          id: "banner-acc-1",
-          imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&auto=format&fit=crop&q=80",
-          title: "Luxury Heritage Villas & Stays",
-          subtitle: "MEGA DEALS • Exclusive 30% Off on Weekends",
-          isActive: true,
-          targetScreen: "category",
-          categoryId: "accommodation"
-        },
-        {
-          id: "banner-acc-2",
-          imageUrl: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1200&auto=format&fit=crop&q=80",
-          title: "Beachside Boutique Resorts",
-          subtitle: "PROMO DEAL • Flat 25% Instant Discount",
-          isActive: true,
-          targetScreen: "category",
-          categoryId: "accommodation"
-        }
-      ];
-    } else if (catKey.includes("food") || catKey.includes("dine") || catKey.includes("cafe") || catKey.includes("restaurant")) {
-      banners = [
-        {
-          id: "banner-food-1",
-          imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&auto=format&fit=crop&q=80",
-          title: "Pondicherry Gourmet Feast",
-          subtitle: "FOODIE SPECIAL • Flat 30% OFF on Dining",
-          isActive: true,
-          targetScreen: "category",
-          categoryId: "food"
-        },
-        {
-          id: "banner-food-2",
-          imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&auto=format&fit=crop&q=80",
-          title: "French Cafe & Bakery Combos",
-          subtitle: "BUY 1 GET 1 • Fresh Morning Breads",
-          isActive: true,
-          targetScreen: "category",
-          categoryId: "food"
-        }
-      ];
-    } else {
-      banners = [
-        {
-          id: "banner-gen-1",
-          imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&auto=format&fit=crop&q=80",
-          title: "Exclusive Verified Deals",
-          subtitle: "SPECIAL OFFER • Save Big in Pondicherry",
-          isActive: true,
-          targetScreen: "category"
-        },
-        {
-          id: "banner-gen-2",
-          imageUrl: "https://images.unsplash.com/photo-1526178613552-2b45c6c302f0?w=1200&auto=format&fit=crop&q=80",
-          title: "Top Rated Outlets",
-          subtitle: "EXPLORE DEALS • Up to 50% OFF",
-          isActive: true,
-          targetScreen: "category"
-        }
-      ];
-    }
+  } catch {
+    // Return live fetched banners from Firebase
   }
 
   return banners;
@@ -1260,7 +1207,7 @@ export const getHotspotsFromFirebase = async (): Promise<Hotspot[]> => {
   let hotspots: Hotspot[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "hotspots"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       if (data.isActive !== false) {
         hotspots.push({
@@ -1273,8 +1220,8 @@ export const getHotspotsFromFirebase = async (): Promise<Hotspot[]> => {
         });
       }
     });
-  } catch (e) {
-    console.warn("Firestore hotspots fetch notice:", e);
+  } catch {
+    // Graceful fallback when offline or unauthenticated
   }
   return hotspots;
 };
@@ -1283,7 +1230,7 @@ export const getBrandsFromFirebase = async (): Promise<Brand[]> => {
   let brands: Brand[] = [];
   try {
     const querySnapshot = await getDocs(collection(db, "brands"));
-    querySnapshot.forEach((doc) => {
+    querySnapshot.forEach((doc: any) => {
       const data = doc.data();
       brands.push({
         id: doc.id,
@@ -1293,8 +1240,8 @@ export const getBrandsFromFirebase = async (): Promise<Brand[]> => {
         businessIds: Array.isArray(data.businessIds) ? data.businessIds : []
       });
     });
-  } catch (e) {
-    console.warn("Firestore brands fetch notice:", e);
+  } catch {
+    // Graceful fallback when offline or unauthenticated
   }
   return brands;
 };

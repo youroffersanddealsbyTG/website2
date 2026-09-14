@@ -288,7 +288,7 @@ export default function CategoryBrowseView() {
                         )}
                       </div>
                       <span className="text-[9px] text-emerald-600 font-bold block">
-                        Save ₹{(offer.originalPrice || offer.ouiyaPrice * 1.3) - offer.ouiyaPrice}
+                        Save ₹{(offer.originalPrice || Math.round((offer.ouiyaPrice ?? 499) * 1.3)) - (offer.ouiyaPrice ?? 499)}
                       </span>
                     </div>
 
